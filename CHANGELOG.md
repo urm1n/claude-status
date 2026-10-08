@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Usage limits in the menu**: current session (5-hour) and weekly usage, with bars, percentages and reset times, like `/usage`.
+  - Terminal sessions: read from Claude Code's status line, offline. Your existing status line is wrapped and keeps working, and it's restored on uninstall.
+  - VS Code and other editors: opt-in **Fetch usage from Anthropic**, using Claude Code's saved login (one Keychain prompt).
+- Reinstalling or upgrading hooks updates them in place instead of moving them to the end of `settings.json`.
+
 - Notifications no longer silently stay off. The app asks for permission after setup, so the macOS prompt isn't hidden behind the setup dialog.
 - If macOS blocks notifications, the menu shows **Notifications are off in macOS → Turn On Notifications…**, which opens the app's own page in System Settings.
 - Settings shows the macOS permission state, with **Allow…**, **Turn On…** or **Send Test** buttons.

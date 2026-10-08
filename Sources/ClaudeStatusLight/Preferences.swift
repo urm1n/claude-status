@@ -17,6 +17,7 @@ enum Pref {
     static let colorWorking = "colorWorking"
     static let colorInput = "colorInput"
     static let didOfferHookInstall = "didOfferHookInstall"
+    static let fetchUsage = "fetchUsage"
 
     static let defaultSound = "Default"
     static let noSound = "None"
@@ -36,6 +37,7 @@ enum Pref {
             colorReady: "",
             colorWorking: "",
             colorInput: "",
+            fetchUsage: false,
         ])
     }
 

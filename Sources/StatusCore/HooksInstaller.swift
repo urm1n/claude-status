@@ -36,6 +36,24 @@ public enum HooksInstaller {
         return "\"\(binary)\" 2>/dev/null || true"
     }
 
+    /// Status line command: records usage limits, then shows the user's own status line if they had one.
+    public static var statusLineCommand: String {
+        let binary = Paths.usesDefaultBaseDir ? "$HOME\(marker)" : Paths.hookBinary.path
+        return "\"\(binary)\" statusline 2>/dev/null"
+    }
+
+    static func isOurStatusLine(_ value: JSONValue?) -> Bool {
+        value.map(isOurs) ?? false
+    }
+
+    /// Ours, keeping display options (padding, refreshInterval…) from the status line it wraps.
+    static func ourStatusLine(wrapping previous: JSONValue?) -> JSONValue {
+        var value = previous?.members != nil ? previous! : .object([])
+        value["type"] = .string("command")
+        value["command"] = .string(statusLineCommand)
+        return value
+    }
+
     static func isOurs(_ hook: JSONValue) -> Bool {
         guard let command = hook["command"]?.string else { return false }
         return command.contains(marker) || (!Paths.usesDefaultBaseDir && command.contains(Paths.hookBinary.path))
@@ -66,12 +84,22 @@ public enum HooksInstaller {
                 if group == ourGroup { exact.insert(member.key) }
             }
         }
-        if found == 0 { return .notInstalled }
+        let statusLine = isOurStatusLine(root["statusLine"])
+        if found == 0 { return statusLine ? .outdated : .notInstalled }
         let expected = Set(HookReducer.registeredEvents)
-        return exact == expected && found == expected.count ? .installed : .outdated
+        return exact == expected && found == expected.count && statusLine ? .installed : .outdated
     }
 
-    public static func removingOurs(from root: JSONValue) -> JSONValue {
+    /// Removes our hooks, and puts back the user's own status line (`chain`) if ours replaced it.
+    public static func removingOurs(from root: JSONValue, chain: JSONValue?) -> JSONValue {
+        var result = removingOurHooks(from: root)
+        if isOurStatusLine(result["statusLine"]) { result["statusLine"] = chain }
+        return result
+    }
+
+    /// `keepEmpty` leaves emptied event lists and the `hooks` object in place, so a reinstall
+    /// re-adds our entries where they were instead of moving them to the end of the file.
+    static func removingOurHooks(from root: JSONValue, keepEmpty: Bool = false) -> JSONValue {
         guard var hooks = root["hooks"], let members = hooks.members else { return root }
         var changed = false
         for member in members {
@@ -91,17 +119,20 @@ public enum HooksInstaller {
             }
             guard groupChanged else { continue }
             changed = true
-            hooks[member.key] = newGroups.isEmpty ? nil : .array(newGroups)
+            hooks[member.key] = newGroups.isEmpty && !keepEmpty ? nil : .array(newGroups)
         }
         guard changed else { return root }
         var result = root
-        result["hooks"] = (hooks.members?.isEmpty ?? false) ? nil : hooks
+        result["hooks"] = (hooks.members?.isEmpty ?? false) && !keepEmpty ? nil : hooks
         return result
     }
 
-    public static func addingOurs(to root: JSONValue) throws -> JSONValue {
+    /// Returns the new settings and the user's own status line that ours now wraps (to save as `chain`).
+    public static func addingOurs(to root: JSONValue, chain: JSONValue?) throws -> (root: JSONValue, chain: JSONValue?) {
         guard root.members != nil else { throw InstallError.notAnObject("top level is not an object") }
-        var result = removingOurs(from: root)
+        var result = removingOurHooks(from: root, keepEmpty: true)
+        if isOurStatusLine(result["statusLine"]) { result["statusLine"] = chain }
+        let usersStatusLine = result["statusLine"]
         var hooks = result["hooks"] ?? .object([])
         guard hooks.members != nil else { throw InstallError.notAnObject("\"hooks\" is not an object") }
         for event in HookReducer.registeredEvents {
@@ -111,8 +142,14 @@ public enum HooksInstaller {
             }
             hooks[event] = .array((existing?.array ?? []) + [ourGroup])
         }
+        // Events an older version hooked that this one doesn't: drop lists left empty.
+        for member in hooks.members ?? [] where member.value.array?.isEmpty == true
+            && root["hooks"]?[member.key]?.array?.isEmpty == false {
+            hooks[member.key] = nil
+        }
         result["hooks"] = hooks
-        return result
+        result["statusLine"] = ourStatusLine(wrapping: usersStatusLine)
+        return (result, usersStatusLine)
     }
 
     // MARK: File operations
@@ -127,11 +164,29 @@ public enum HooksInstaller {
     }
 
     public static func install(settings: URL = Paths.claudeSettings) throws {
-        try modify(settings: settings, createIfMissing: true) { try addingOurs(to: $0) }
+        let fm = FileManager.default
+        var wrapped: JSONValue?
+        try modify(settings: settings, createIfMissing: true) { root in
+            let (updated, chain) = try addingOurs(to: root, chain: savedChain())
+            wrapped = chain
+            // Save the user's status line before settings.json stops containing it.
+            if let chain {
+                try fm.createDirectory(at: Paths.baseDir, withIntermediateDirectories: true)
+                try Data(chain.serialized().utf8).write(to: Paths.statusLineChainFile, options: .atomic)
+            }
+            return updated
+        }
+        if wrapped == nil { try? fm.removeItem(at: Paths.statusLineChainFile) }
     }
 
     public static func uninstall(settings: URL = Paths.claudeSettings) throws {
-        try modify(settings: settings, createIfMissing: false) { removingOurs(from: $0) }
+        let chain = savedChain()
+        try modify(settings: settings, createIfMissing: false) { removingOurs(from: $0, chain: chain) }
+        try? FileManager.default.removeItem(at: Paths.statusLineChainFile)
+    }
+
+    static func savedChain() -> JSONValue? {
+        (try? Data(contentsOf: Paths.statusLineChainFile)).flatMap { try? JSONValue.parse($0) }
     }
 
     /// Restores the newest backup over settings.json (keeping a copy of the current file first).

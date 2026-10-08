@@ -63,7 +63,8 @@ These keep the app what it promises to be:
 
 - **Never break Claude Code.** The hook must stay fast, print nothing to stdout, and exit 0 on every path.
 - **No polling.** Use file-system and process events. A timer is only OK when it's one-shot and armed only when needed.
-- **No network, no telemetry, no third-party dependencies.**
+- **No telemetry, no third-party dependencies.** No network by default; the opt-in usage fetch is the only request, and only to Anthropic.
+- **Never refresh or store Claude Code's login.** Read it from the Keychain per request, and nothing else.
 - **Privacy.** Never store prompts, code, tool inputs or responses.
 - **settings.json.** Back it up, append only, touch only our own entries, and keep everything else byte-for-byte.
 - If you change state logic, add a test in `HookReducerTests`.

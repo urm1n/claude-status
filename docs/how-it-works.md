@@ -45,6 +45,13 @@ The state machine lives in [`Sources/StatusCore/HookReducer.swift`](../Sources/S
 | The app starts after Claude | Existing sessions load from disk or appear on their next event. |
 | The app is quit or deleted | Hooks still exit instantly and quietly (`... || true`). |
 
+## Usage limits
+
+Two sources, and the menu shows whichever is newer:
+
+1. **Status line (always on, offline).** Installing also sets Claude Code's `statusLine` to `csl-hook statusline`. After each reply Claude Code passes it JSON with `rate_limits.five_hour` and `rate_limits.seven_day` (`used_percentage`, `resets_at`) on Pro/Max plans. The helper saves that to `~/.claude-status-light/usage/statusline.json`. If you already had a status line, it's saved to `~/.claude-status-light/statusline-chain.json` and run with the same input, so your terminal looks exactly as before. Uninstall puts it back. The status line only runs in terminal sessions, not in the VS Code extension.
+2. **Fetch from Anthropic (opt-in).** `GET https://api.anthropic.com/api/oauth/usage`, the endpoint behind `/usage`, authorized with the OAuth token Claude Code keeps in the Keychain item `Claude Code-credentials`. The token is read per request and never stored, logged or refreshed: refreshing would rotate Claude Code's own login. It runs when you open the menu (at most once a minute), and every 5 minutes while a session is open.
+
 ## Notifications
 
 - Every notification for a session uses the same identifier, `csl.session.<id>`, so a new one **replaces** the previous one.
@@ -59,6 +66,8 @@ The state machine lives in [`Sources/StatusCore/HookReducer.swift`](../Sources/S
 | `~/.claude-status-light/bin/csl-hook` | The helper the hooks run. The app keeps it in sync with its own copy, so moving or updating the app never breaks hooks. |
 | `~/.claude-status-light/sessions/*.json` | One small file per open session |
 | `~/.claude-status-light/backups/` | `settings.json` backups, the last 10 |
+| `~/.claude-status-light/usage/statusline.json` | Latest usage from the status line (percentages and reset times only) |
+| `~/.claude-status-light/statusline-chain.json` | Your own status line, if you had one, while the app wraps it |
 | `~/Library/Preferences/com.claudestatuslight.app.plist` | App settings |
 
 A session file looks like this. There are no prompts, code or replies in it:
@@ -85,6 +94,8 @@ A session file looks like this. There are no prompts, code or replies in it:
 - **Own entries only.** They're recognised by the helper path in the command, and nothing else is touched.
 - **Safe failure.** If the file isn't valid JSON, nothing is written. On uninstall, the app offers to restore the latest backup.
 - **Symlinks kept.** A symlinked `settings.json` (dotfiles setups) stays a symlink.
+
+It also sets `"statusLine": {"type": "command", "command": "\"$HOME/.claude-status-light/bin/csl-hook\" statusline 2>/dev/null"}`, keeping your status line's other options such as `padding`.
 
 The hook entry it adds, once per event:
 

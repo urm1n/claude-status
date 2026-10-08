@@ -5,6 +5,7 @@ import StatusCore
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SessionStore()
+    let usage = UsageStore()
     private var statusItem: StatusItemController!
     private(set) var notifier: Notifier!
     private var defaultsObserver: NSObjectProtocol?
@@ -12,13 +13,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Pref.registerDefaults()
         notifier = Notifier(store: store)
-        statusItem = StatusItemController(store: store, notifier: notifier, app: self)
+        statusItem = StatusItemController(store: store, notifier: notifier, usage: usage, app: self)
         notifier.onPermissionChange = { [weak self] permission in
             self?.statusItem.permissionChanged()
             SettingsWindowController.shared.model.notificationPermission = permission
         }
 
-        store.onChange = { [weak self] in self?.statusItem.refresh() }
+        store.onChange = { [weak self] in
+            guard let self else { return }
+            self.statusItem.refresh()
+            self.usage.setActive(!self.store.records.isEmpty)
+        }
+        usage.onChange = { [weak self] in self?.statusItem.usageChanged() }
+        usage.start()
         store.onEvent = { [weak self] event in self?.notifier.handle(event) }
         store.start()
 
@@ -176,6 +183,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             showError("Couldn’t restore the backup", error)
         }
+    }
+
+    // MARK: Usage
+
+    /// Explains what turning on usage fetching does before doing it (Keychain prompt, network).
+    func enableUsageFetching() {
+        let alert = NSAlert()
+        alert.messageText = "Show usage from Anthropic?"
+        alert.informativeText = """
+        Claude Status Light will read the same numbers as Claude Code’s /usage command, using the login \
+        Claude Code already saved on this Mac. macOS will ask once to allow access to “Claude Code-credentials” \
+        in your Keychain: choose Always Allow.
+
+        The login is only sent to Anthropic, never stored or shared. You can turn this off in Settings.
+        """
+        alert.addButton(withTitle: "Turn On")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate()
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        Pref.defaults.set(true, forKey: Pref.fetchUsage)
+        usage.settingChanged()
     }
 
     // MARK: Other actions

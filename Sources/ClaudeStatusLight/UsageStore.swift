@@ -1,0 +1,208 @@
+import Foundation
+import Security
+import StatusCore
+
+/// Session (5-hour) and weekly usage, from whichever source is freshest:
+/// - the status line data Claude Code hands to `csl-hook statusline` (terminal sessions, offline), or
+/// - opt-in: the endpoint behind `/usage`, using Claude Code's own login (works for VS Code too).
+@MainActor
+final class UsageStore {
+    private(set) var statusLine: UsageSnapshot?
+    private(set) var fetched: UsageSnapshot?
+    private(set) var fetchError: UsageFetcher.Failure?
+    private(set) var isFetching = false
+    var onChange: (() -> Void)?
+
+    private var dirSource: DispatchSourceFileSystemObject?
+    private var timer: DispatchSourceTimer?
+    private var lastAttempt: Date = .distantPast
+    private var active = false
+
+    /// Re-fetch at most this often, and only while a Claude session is open.
+    private let fetchInterval: TimeInterval = 5 * 60
+
+    var current: UsageSnapshot? {
+        [statusLine, fetched].compactMap { $0 }.max { $0.updatedAt < $1.updatedAt }
+    }
+
+    var fetchEnabled: Bool { Pref.defaults.bool(forKey: Pref.fetchUsage) }
+
+    func start() {
+        watchDirectory()
+        loadStatusLine()
+    }
+
+    // MARK: Status line source (file written by csl-hook)
+
+    private func watchDirectory() {
+        dirSource?.cancel()
+        try? FileManager.default.createDirectory(at: Paths.usageDir, withIntermediateDirectories: true)
+        let fd = open(Paths.usageDir.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: [.write, .delete, .rename],
+                                                               queue: .main)
+        source.setEventHandler { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let source = self.dirSource else { return }
+                if !source.data.isDisjoint(with: [.delete, .rename]) { self.watchDirectory() }
+                self.loadStatusLine()
+            }
+        }
+        source.setCancelHandler { close(fd) }
+        dirSource = source
+        source.resume()
+    }
+
+    private func loadStatusLine() {
+        let snapshot = (try? Data(contentsOf: Paths.statusLineUsageFile))
+            .flatMap { try? JSONDecoder().decode(UsageSnapshot.self, from: $0) }
+        guard snapshot != statusLine else { return }
+        statusLine = snapshot
+        onChange?()
+    }
+
+    // MARK: Anthropic source (opt-in)
+
+    /// Called when sessions come and go: fetch periodically only while Claude is in use.
+    func setActive(_ isActive: Bool) {
+        guard isActive != active else { return }
+        active = isActive
+        scheduleTimer()
+        if isActive { refresh() }
+    }
+
+    func settingChanged() {
+        if fetchEnabled {
+            fetchError = nil
+            refresh(force: true)
+        } else {
+            fetched = nil
+            fetchError = nil
+            onChange?()
+        }
+        scheduleTimer()
+    }
+
+    /// Fetches unless it did so recently. A denied Keychain prompt is never re-shown on its own.
+    func refresh(force: Bool = false) {
+        guard fetchEnabled, !isFetching else { return }
+        if !force {
+            if Date().timeIntervalSince(lastAttempt) < 60 { return }
+            if fetchError == .keychainDenied { return }
+        }
+        lastAttempt = Date()
+        isFetching = true
+        Task {
+            let result = await Task.detached(priority: .utility) { await UsageFetcher.fetch() }.value
+            self.isFetching = false
+            switch result {
+            case .success(let snapshot):
+                self.fetched = snapshot
+                self.fetchError = nil
+            case .failure(let failure):
+                self.fetchError = failure
+            }
+            self.onChange?()
+        }
+    }
+
+    private func scheduleTimer() {
+        timer?.cancel()
+        timer = nil
+        guard active, fetchEnabled else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + fetchInterval, repeating: fetchInterval, leeway: .seconds(30))
+        timer.setEventHandler { [weak self] in MainActor.assumeIsolated { self?.refresh() } }
+        self.timer = timer
+        timer.resume()
+    }
+}
+
+/// Reads the same numbers as Claude Code's `/usage`. The login token is read from the Keychain for
+/// each request and never stored, logged, refreshed, or sent anywhere but api.anthropic.com.
+enum UsageFetcher {
+    enum Failure: Error, Equatable {
+        case notLoggedIn
+        case keychainDenied
+        case loginExpired
+        case notSubscriber
+        case http(Int)
+        case network
+        case unexpectedResponse
+
+        var message: String {
+            switch self {
+            case .notLoggedIn: return "Claude Code isn’t logged in on this Mac"
+            case .keychainDenied: return "Keychain access was denied"
+            case .loginExpired: return "Login expired: use Claude Code once to refresh it"
+            case .notSubscriber: return "No usage limits on this account"
+            case .http(let code): return "Anthropic returned an error (\(code))"
+            case .network: return "Couldn’t reach Anthropic"
+            case .unexpectedResponse: return "Unexpected response from Anthropic"
+            }
+        }
+    }
+
+    static let endpoint = URL(string: "https://api.anthropic.com/api/oauth/usage")!
+    static let keychainService = "Claude Code-credentials"
+
+    static func fetch() async -> Result<UsageSnapshot, Failure> {
+        let token: String
+        switch readToken() {
+        case .success(let value): token = value
+        case .failure(let failure): return .failure(failure)
+        }
+
+        var request = URLRequest(url: endpoint, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("claude-status-light", forHTTPHeaderField: "User-Agent")
+
+        let session = URLSession(configuration: .ephemeral)
+        defer { session.finishTasksAndInvalidate() }
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse else { return .failure(.network) }
+        switch http.statusCode {
+        case 200: break
+        case 401: return .failure(.loginExpired)
+        case 403: return .failure(.notSubscriber)
+        default: return .failure(.http(http.statusCode))
+        }
+        guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return .failure(.unexpectedResponse)
+        }
+        guard let snapshot = UsageSnapshot.fromAnthropic(json, now: Date().timeIntervalSince1970) else {
+            return .failure(.notSubscriber)
+        }
+        return .success(snapshot)
+    }
+
+    /// Claude Code stores `{"claudeAiOauth": {"accessToken", "expiresAt" (ms), …}}` as a generic password.
+    /// macOS asks the user once before letting this app read it.
+    private static func readToken() -> Result<String, Failure> {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        switch status {
+        case errSecSuccess: break
+        case errSecItemNotFound: return .failure(.notLoggedIn)
+        default: return .failure(.keychainDenied)
+        }
+        guard let data = item as? Data,
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let oauth = json["claudeAiOauth"] as? [String: Any],
+              let token = oauth["accessToken"] as? String, !token.isEmpty else { return .failure(.notLoggedIn) }
+        // Never refresh the token ourselves: that would rotate Claude Code's login out from under it.
+        if let expiresAt = (oauth["expiresAt"] as? NSNumber)?.doubleValue,
+           expiresAt / 1000 < Date().timeIntervalSince1970 {
+            return .failure(.loginExpired)
+        }
+        return .success(token)
+    }
+}

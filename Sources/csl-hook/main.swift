@@ -29,6 +29,31 @@ case nil:
     }
     exit(0)
 
+case "statusline":
+    // Claude Code's status line: record usage limits, then show the user's own status line
+    // (the one we wrapped at install) or, if they had none, a compact usage line.
+    let payload = FileHandle.standardInput.readDataToEndOfFile()
+    let usageLine = StatusLineRunner.record(payload: payload)
+    guard let chained = StatusLineRunner.chainedCommand() else {
+        if !usageLine.isEmpty { print(usageLine) }
+        exit(0)
+    }
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/bin/bash")
+    process.arguments = ["-c", chained]
+    let input = Pipe()
+    process.standardInput = input
+    do {
+        try process.run()
+        input.fileHandleForWriting.write(payload)
+        try? input.fileHandleForWriting.close()
+        process.waitUntilExit()
+        exit(process.terminationStatus)
+    } catch {
+        if !usageLine.isEmpty { print(usageLine) }
+        exit(0)
+    }
+
 case "install":
     do {
         if let me = Bundle.main.executableURL?.resolvingSymlinksInPath(),

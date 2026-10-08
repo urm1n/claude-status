@@ -30,6 +30,10 @@ public enum Paths {
     public static var backupsDir: URL { baseDir.appendingPathComponent("backups", isDirectory: true) }
     public static var hookBinary: URL { binDir.appendingPathComponent("csl-hook") }
     public static var lockFile: URL { baseDir.appendingPathComponent(".lock") }
+    public static var usageDir: URL { baseDir.appendingPathComponent("usage", isDirectory: true) }
+    public static var statusLineUsageFile: URL { usageDir.appendingPathComponent("statusline.json") }
+    /// The user's own `statusLine` setting, kept while ours wraps it, restored on uninstall.
+    public static var statusLineChainFile: URL { baseDir.appendingPathComponent("statusline-chain.json") }
 
     public static func sessionFile(for sessionId: String) -> URL {
         sessionsDir.appendingPathComponent(safeFileName(for: sessionId) + ".json")

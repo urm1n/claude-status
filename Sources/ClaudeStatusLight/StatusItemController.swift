@@ -8,13 +8,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let store: SessionStore
     private let notifier: Notifier
+    private let usage: UsageStore
     private unowned let app: AppDelegate
     private var lastRendered: (state: SessionState?, symbols: Bool, colors: [String])?
     private var menuIsOpen = false
 
-    init(store: SessionStore, notifier: Notifier, app: AppDelegate) {
+    init(store: SessionStore, notifier: Notifier, usage: UsageStore, app: AppDelegate) {
         self.store = store
         self.notifier = notifier
+        self.usage = usage
         self.app = app
         super.init()
         let menu = NSMenu()
@@ -49,11 +51,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if menuIsOpen, let menu = statusItem.menu { menuNeedsUpdate(menu) }
     }
 
+    /// New usage numbers arrived (status line or fetch): update the open menu in place.
+    func usageChanged() {
+        if menuIsOpen, let menu = statusItem.menu { menuNeedsUpdate(menu) }
+    }
+
     // MARK: NSMenuDelegate
 
     func menuWillOpen(_ menu: NSMenu) {
         menuIsOpen = true
         notifier.refreshPermission()
+        usage.refresh()
     }
 
     func menuDidClose(_ menu: NSMenu) {
@@ -84,6 +92,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
+        addUsageSection(to: menu)
+
         let sessions = store.sortedSessions
         if sessions.isEmpty {
             let empty = NSMenuItem(title: "No active Claude Code sessions", action: nil, keyEquivalent: "")
@@ -110,6 +120,38 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(item("Settings…", #selector(openSettings), key: ","))
         menu.addItem(.separator())
         menu.addItem(item("Quit Claude Status Light", #selector(quit), key: "q"))
+    }
+
+    private func addUsageSection(to menu: NSMenu) {
+        if let snapshot = usage.current {
+            let item = NSMenuItem()
+            item.view = UsageMenuView(snapshot: snapshot)
+            menu.addItem(item)
+            if usage.fetchEnabled, let error = usage.fetchError, snapshot.source == .statusLine {
+                menu.addItem(note("Couldn’t refresh from Anthropic: \(error.message)"))
+            }
+        } else if usage.fetchEnabled {
+            if let error = usage.fetchError {
+                menu.addItem(note("Usage unavailable: \(error.message)"))
+                menu.addItem(item("Try Again", #selector(retryUsage)))
+            } else {
+                menu.addItem(note("Loading usage…"))
+            }
+        } else {
+            menu.addItem(note("Usage limits appear after Claude replies in a terminal session"))
+            menu.addItem(item("Show Usage from Anthropic…", #selector(enableUsage)))
+        }
+        menu.addItem(.separator())
+    }
+
+    private func note(_ text: String) -> NSMenuItem {
+        let item = NSMenuItem(title: text, action: nil, keyEquivalent: "")
+        item.attributedTitle = NSAttributedString(string: text, attributes: [
+            .font: NSFont.menuFont(ofSize: NSFont.smallSystemFontSize),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ])
+        item.isEnabled = false
+        return item
     }
 
     private func item(_ title: String, _ action: Selector, key: String = "") -> NSMenuItem {
@@ -159,6 +201,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     @objc private func turnOnNotifications() { app.turnOnNotifications() }
+    @objc private func enableUsage() { app.enableUsageFetching() }
+    @objc private func retryUsage() { usage.refresh(force: true) }
 
     @objc private func toggleLaunchAtLogin() { app.setLaunchAtLogin(!LoginItem.isEnabled) }
     @objc private func installHooks() { app.installHooks() }

@@ -78,6 +78,7 @@ struct SettingsView: View {
     @AppStorage(Pref.minDoneSeconds) private var minDoneSeconds = 0
 
     @AppStorage(Pref.idleTimeoutMinutes) private var idleTimeoutMinutes = 5
+    @AppStorage(Pref.fetchUsage) private var fetchUsage = false
 
     var body: some View {
         Form {
@@ -126,6 +127,20 @@ struct SettingsView: View {
             } footer: {
                 Text("Covers runs interrupted with Esc, where Claude Code never reports the turn ending.")
                     .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Fetch usage from Anthropic", isOn: $fetchUsage)
+                    .onChange(of: fetchUsage) { _, _ in model.app?.usage.settingChanged() }
+            } header: {
+                Text("Usage limits")
+            } footer: {
+                Text("""
+                Session and weekly usage always come from Claude Code sessions in a terminal, offline. \
+                Turn this on to also get them for VS Code and other editors: it reads the same numbers as /usage \
+                with Claude Code’s saved login (macOS asks once for Keychain access). The login only goes to Anthropic.
+                """)
+                .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("General") {

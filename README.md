@@ -32,11 +32,13 @@ Start a long task in Claude Code, switch to something else, and glance at the me
 
 You also get a notification when Claude **finishes** or **needs you**. Click it to jump back to the right terminal or editor.
 
+Click the light to see your **usage limits**: the current session (5-hour) window and your weekly limit, with bars and reset times, the same numbers as Claude Code's `/usage`.
+
 **Why you might like it**
 
 - **Set up in one click.** No account, no API key, no config files to edit.
 - **Light.** About 13 MB of memory, 0% CPU while idle, and an app of under 3 MB.
-- **Private.** It never touches the network and never reads your prompts or code.
+- **Private.** It never reads your prompts or code, and stays fully offline unless you turn on usage fetching.
 - **Works everywhere Claude Code does:** Terminal, iTerm, Ghostty, Warp, VS Code, Cursor, and the Claude desktop app's Code tab.
 - **Handles several sessions at once.** The light shows the most urgent one, and the menu lists them all.
 
@@ -90,7 +92,21 @@ Optional: open the menu and turn on **Launch at Login**.
 
 ## Using it
 
-**Click the light** to see every session, with its folder, its state and how long it has been in that state. Click a session to bring its terminal or editor to the front.
+**Click the light** to see:
+
+- **Usage limits**: the current session (5-hour) window and your weekly limit, with bars, percentages and reset times. Bars turn orange at 75% and red at 90%.
+- **Every session**, with its folder, its state and how long it has been in that state. Click a session to bring its terminal or editor to the front.
+
+### Usage limits
+
+These need a Claude **Pro or Max** plan. The numbers come from one of two places:
+
+| Source | Works in | How |
+|---|---|---|
+| **Claude Code's status line** (always on) | Terminal sessions | Claude Code passes the usage to the app's status line after every reply. Official, offline. If you already had a status line, it keeps showing; the app wraps it. If you didn't, the terminal shows a short usage line. |
+| **Fetch usage from Anthropic** (opt-in) | Everywhere, including VS Code | Click **Show Usage from Anthropic…** in the menu, or turn it on in Settings. It reads the same numbers as `/usage` using the login Claude Code already saved. macOS asks once for Keychain access; choose **Always Allow**. It refreshes every 5 minutes while a session is open, and when you open the menu. |
+
+The fetch uses an endpoint Anthropic doesn't document, so it could stop working if they change it. The status line source keeps working either way.
 
 From the same menu you can turn notifications on or off, toggle Launch at Login, install or uninstall the hooks, and open **Settings…**:
 
@@ -103,6 +119,7 @@ From the same menu you can turn notifications on or off, toggle Launch at Login,
 | Only if Claude worked at least… | Skip "finished" notifications for quick answers |
 | Skip when terminal is in front | No notification if you're already looking at that session |
 | Idle timeout | How long a silent "working" session waits before it's treated as ready (default 5 min) |
+| Fetch usage from Anthropic | Show usage limits for VS Code and other editors too (see above) |
 
 <details>
 <summary>Accessibility mode (shapes as well as colors)</summary>
@@ -144,6 +161,15 @@ Another tool has also hooked into Claude Code (for example a "notifier" script t
 </details>
 
 <details>
+<summary><b>Usage limits don't show</b></summary>
+
+- They need a Pro or Max plan. API-key accounts have no usage limits.
+- From a terminal session they appear after Claude's first reply. Restart sessions that were open before you installed or updated the app.
+- In VS Code, turn on **Fetch usage from Anthropic**. If the menu says *Keychain access was denied*, click **Try Again** and choose **Always Allow**. After updating the app, macOS may ask again.
+- *Login expired* means Claude Code's saved login needs a refresh. Use Claude Code once and it renews it.
+</details>
+
+<details>
 <summary><b>The light was stuck on yellow after I pressed Esc</b></summary>
 
 Claude Code doesn't report a turn ending when you interrupt it. The light corrects itself after about 60 seconds, when Claude Code reports it's waiting for input. If it doesn't, it goes back to green after the idle timeout (Settings → Sessions).
@@ -164,10 +190,11 @@ No. Each hook call takes about 10 ms, never blocks Claude, prints nothing, and a
 
 ## Privacy
 
-- **No network access at all.** No analytics, no update checks, no accounts.
+- **No network access by default.** No analytics, no update checks, no accounts. The only network request it can ever make is the opt-in usage fetch, which goes to `api.anthropic.com` only.
+- With usage fetching on, Claude Code's login is read from the Keychain for each request and sent only to Anthropic. It's never stored, logged or refreshed by this app.
 - It stores only what it needs to draw the light: session id, project folder, state, a short reason ("Permission needed: Bash"), timestamps and process ids.
 - It **never** stores your prompts, code, tool inputs or Claude's replies. The hook ignores those fields.
-- It only changes `~/.claude/settings.json` when you click Install or Uninstall. It backs the file up first, only adds its own entries, and leaves everything else exactly as it was.
+- It only changes `~/.claude/settings.json` when you click Install or Uninstall (or when an update needs new entries). It backs the file up first, only adds its own hooks and status line, and leaves everything else exactly as it was.
 
 More detail in **[How it works](docs/how-it-works.md)**.
 
