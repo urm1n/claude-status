@@ -19,7 +19,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/states-dark.png">
-    <img src="docs/images/states-light.png" width="480" alt="Menu bar light: gray ring for no session, green for ready, yellow for working, red when Claude needs you">
+    <img src="docs/images/states-light.png" width="480" alt="Menu bar light: the flower mark for no session, green for ready, yellow for working, red when Claude needs you">
   </picture>
 </p>
 
@@ -28,7 +28,7 @@ Start a long task in Claude Code, switch to something else, and glance at the me
 - 🟢 **Green**: Claude is done and waiting for your next prompt
 - 🟡 **Yellow**: Claude is working
 - 🔴 **Red**: Claude needs you (a permission prompt, a question, a form)
-- ⚪ **Gray ring**: no Claude Code session is open
+- ✿ **The flower mark**: no Claude Code session is open
 
 You also get a notification when Claude **finishes** or **needs you**. Click it to jump back to the right terminal or editor.
 
@@ -99,6 +99,13 @@ Optional: open the menu and turn on **Launch at Login**.
 
 ### Usage limits
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/usage-dark.png">
+    <img src="docs/images/usage-light.png" width="312" alt="Usage panel: current session 24%, resets in 2h 14m; weekly limit 78%, resets Monday">
+  </picture>
+</p>
+
 These need a Claude **Pro or Max** plan. The numbers come from one of two places:
 
 | Source | Works in | How |
@@ -114,7 +121,7 @@ From the same menu you can turn notifications on or off, toggle Launch at Login,
 |---|---|
 | Colors | Pick your own color for each state |
 | Different shape per state | Accessibility mode for color blindness (see below) |
-| Show light when no session | Hide the gray ring when Claude isn't running |
+| Show light when no session | Hide the flower mark when Claude isn't running |
 | Notifications | On/off for "finished" and "needs you", a sound for each, or silent |
 | Only if Claude worked at least… | Skip "finished" notifications for quick answers |
 | Skip when terminal is in front | No notification if you're already looking at that session |
@@ -126,7 +133,7 @@ From the same menu you can turn notifications on or off, toggle Launch at Login,
 <br>
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/states-symbols-dark.png">
-  <img src="docs/images/states-symbols-light.png" width="480" alt="Shape mode: dashed ring, check mark, three dots, exclamation mark">
+  <img src="docs/images/states-symbols-light.png" width="480" alt="Shape mode: flower mark, check mark, three dots, exclamation mark">
 </picture>
 </details>
 
@@ -137,7 +144,7 @@ Each session gets **one** notification slot. A new notification replaces the old
 ## Troubleshooting
 
 <details>
-<summary><b>The light stays gray while Claude is running</b></summary>
+<summary><b>The menu bar shows the flower while Claude is running</b></summary>
 
 - Click the light. If it says **Hooks not installed**, click **Install Hooks…**.
 - Sessions only pick up the hooks when they start, so **restart Claude Code**.

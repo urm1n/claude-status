@@ -29,9 +29,12 @@ cp "$BIN_DIR/ClaudeStatusLight" "$APP/Contents/MacOS/"
 cp "$BIN_DIR/csl-hook" "$APP/Contents/MacOS/"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD_NUMBER/" Resources/Info.plist > "$APP/Contents/Info.plist"
 
-if [[ ! -f Resources/AppIcon.icns ]]; then
+if [[ ! -f Resources/AppIcon.icns || Sources/ClaudeStatusLight/BrandMark.swift -nt Resources/AppIcon.icns \
+      || scripts/make-icon.swift -nt Resources/AppIcon.icns ]]; then
     echo "==> Rendering app icon"
-    swift scripts/make-icon.swift "$ROOT" >/dev/null
+    mkdir -p build
+    swiftc -parse-as-library scripts/make-icon.swift Sources/ClaudeStatusLight/BrandMark.swift -o build/make-icon
+    build/make-icon build >/dev/null
     iconutil -c icns build/AppIcon.iconset -o Resources/AppIcon.icns
 fi
 cp Resources/AppIcon.icns "$APP/Contents/Resources/"

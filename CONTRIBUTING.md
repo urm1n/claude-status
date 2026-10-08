@@ -31,7 +31,8 @@ swift test           # run the tests
 | `Sources/csl-hook/` | The helper Claude Code runs on every hook event, also the `install / uninstall / status` CLI |
 | `Sources/ClaudeStatusLight/` | The menu bar app: status item and menu (AppKit), notifications, and a SwiftUI settings window loaded only when opened |
 | `Tests/StatusCoreTests/` | Unit tests for the state machine and the settings installer |
-| `scripts/` | `build-app.sh` (the .app), `make-dmg.sh` (a universal DMG), `make-icon.swift` |
+| `scripts/` | `build-app.sh` (the .app), `make-dmg.sh` (a universal DMG), `make-icon.swift` (app icon), `make-docs-images.sh` (README images) |
+| `Resources/AppIcon.svg` | The logo. The flower path also lives in `BrandMark.swift`, which draws the menu bar icon and the app icon |
 | `docs/` | [How it works](docs/how-it-works.md), the original [requirements](docs/requirements.md), images |
 
 ### Testing without touching your real setup
@@ -56,6 +57,15 @@ echo '{"hook_event_name":"SessionEnd","session_id":"demo"}' | "$HOOK"
 ```
 
 To check memory and CPU: `footprint $(pgrep -x ClaudeStatusLight)` and `top -pid $(pgrep -x ClaudeStatusLight)`.
+
+### Changing the logo or how the light looks
+
+Update the path in `Sources/ClaudeStatusLight/BrandMark.swift` (and `Resources/AppIcon.svg`), then:
+
+```bash
+scripts/make-docs-images.sh   # app icon + every image in docs/images
+scripts/build-app.sh          # rebuilds Resources/AppIcon.icns when BrandMark changes
+```
 
 ## Ground rules
 

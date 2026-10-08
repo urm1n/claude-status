@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **New icon**: an orange flower mark. The app icon uses it, and the menu bar shows it when no session is open (instead of the gray ring).
+
 - **Usage limits in the menu**: current session (5-hour) and weekly usage, with bars, percentages and reset times, like `/usage`.
   - Terminal sessions: read from Claude Code's status line, offline. Your existing status line is wrapped and keeps working, and it's restored on uninstall.
   - VS Code and other editors: opt-in **Fetch usage from Anthropic**, using Claude Code's saved login (one Keychain prompt).

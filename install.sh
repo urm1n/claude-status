@@ -28,6 +28,10 @@ fi
 echo "==> Installing to $DEST"
 rm -rf "$DEST/$APP_NAME.app"
 cp -R "$ROOT/build/$APP_NAME.app" "$DEST/"
+# Make Finder, alerts and notifications pick up a changed app icon.
+touch "$DEST/$APP_NAME.app"
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+    -f "$DEST/$APP_NAME.app" >/dev/null 2>&1 || true
 
 open "$DEST/$APP_NAME.app"
 echo

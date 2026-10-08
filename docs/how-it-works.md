@@ -28,7 +28,7 @@ Claude Status Light has three parts:
 | `Stop`, `StopFailure` | 🟢 ready + "finished" notification |
 | `SessionEnd`, or the Claude process exits | session removed |
 
-With several sessions, the light shows the highest priority: **red > yellow > green > gray**.
+With several sessions, the light shows the highest priority: **red > yellow > green > the flower mark (no session)**.
 
 The state machine lives in [`Sources/StatusCore/HookReducer.swift`](../Sources/StatusCore/HookReducer.swift) and is covered by unit tests.
 
