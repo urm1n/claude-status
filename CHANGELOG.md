@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **The flower spins slowly while Claude is working.** It's a Core Animation layer, so it costs no CPU. It's off with Reduce Motion or shape mode, and there's a toggle in Settings.
 - **New icon**: an orange flower mark. The app icon uses it, and so does the menu bar light: a flower in green, yellow or red instead of a circle, and a plain flower when no session is open.
 
 - **Usage limits in the menu**: current session (5-hour) and weekly usage, with bars, percentages and reset times, like `/usage`.

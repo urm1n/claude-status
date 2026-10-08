@@ -26,7 +26,7 @@
 Start a long task in Claude Code, switch to something else, and glance at the menu bar:
 
 - 🟢 **Green**: Claude is done and waiting for your next prompt
-- 🟡 **Yellow**: Claude is working
+- 🟡 **Yellow**: Claude is working (the flower spins slowly)
 - 🔴 **Red**: Claude needs you (a permission prompt, a question, a form)
 - ✿ **The flower mark**: no Claude Code session is open
 
@@ -121,6 +121,7 @@ From the same menu you can turn notifications on or off, toggle Launch at Login,
 |---|---|
 | Colors | Pick your own color for each state |
 | Different shape per state | Accessibility mode for color blindness (see below) |
+| Spin while working | The yellow flower turns slowly while Claude works. Off automatically with Reduce Motion |
 | Show light when no session | Hide the flower mark when Claude isn't running |
 | Notifications | On/off for "finished" and "needs you", a sound for each, or silent |
 | Only if Claude worked at least… | Skip "finished" notifications for quick answers |

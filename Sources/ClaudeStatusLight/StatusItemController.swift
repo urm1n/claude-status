@@ -10,8 +10,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let notifier: Notifier
     private let usage: UsageStore
     private unowned let app: AppDelegate
-    private var lastRendered: (state: SessionState?, symbols: Bool, colors: [String])?
+    private var lastRendered: RenderKey?
     private var menuIsOpen = false
+    private let animation = WorkingAnimation()
+
+    private struct RenderKey: Equatable {
+        let state: SessionState?
+        let symbols: Bool
+        let colors: [String]
+        let spinning: Bool
+    }
 
     init(store: SessionStore, notifier: Notifier, usage: UsageStore, app: AppDelegate) {
         self.store = store
@@ -32,12 +40,24 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let visible = state != nil || Pref.defaults.bool(forKey: Pref.showWhenIdle)
         if statusItem.isVisible != visible { statusItem.isVisible = visible }
 
-        let key = (state, Pref.defaults.bool(forKey: Pref.symbolMode),
-                   SessionState.allCases.map { Pref.color(for: $0).hexString })
-        if let last = lastRendered, last.state == key.0, last.symbols == key.1, last.colors == key.2 { return }
+        let key = RenderKey(state: state, symbols: Pref.defaults.bool(forKey: Pref.symbolMode),
+                            colors: SessionState.allCases.map { Pref.color(for: $0).hexString },
+                            spinning: state == .working && WorkingAnimation.isAllowed)
+        guard key != lastRendered, let button = statusItem.button else { return }
         lastRendered = key
-        statusItem.button?.image = IconRenderer.statusImage(for: state)
-        statusItem.button?.toolTip = tooltip()
+
+        let image = IconRenderer.statusImage(for: state)
+        if key.spinning {
+            // Keep an invisible image so the item keeps its size and accessibility label.
+            let placeholder = NSImage(size: image.size)
+            placeholder.accessibilityDescription = image.accessibilityDescription
+            button.image = placeholder
+            animation.start(on: button, color: Pref.color(for: .working))
+        } else {
+            animation.stop()
+            button.image = image
+        }
+        button.toolTip = tooltip()
     }
 
     private func tooltip() -> String {

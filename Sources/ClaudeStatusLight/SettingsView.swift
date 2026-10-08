@@ -68,6 +68,7 @@ struct SettingsView: View {
     @AppStorage(Pref.colorInput) private var colorInput = ""
     @AppStorage(Pref.symbolMode) private var symbolMode = false
     @AppStorage(Pref.showWhenIdle) private var showWhenIdle = true
+    @AppStorage(Pref.animateWorking) private var animateWorking = true
 
     @AppStorage(Pref.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Pref.notifyDone) private var notifyDone = true
@@ -87,6 +88,8 @@ struct SettingsView: View {
                 ColorPicker("Working", selection: color($colorWorking, .systemYellow), supportsOpacity: false)
                 ColorPicker("Needs input", selection: color($colorInput, .systemRed), supportsOpacity: false)
                 Toggle("Use a different shape per state (accessibility)", isOn: $symbolMode)
+                Toggle("Spin the light while Claude is working", isOn: $animateWorking)
+                    .disabled(symbolMode)
                 Toggle("Show the light when no session is running", isOn: $showWhenIdle)
                 if !showWhenIdle {
                     Text("While hidden, open Claude Status Light again from Finder or Spotlight to get back here.")

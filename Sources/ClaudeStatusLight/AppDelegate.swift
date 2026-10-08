@@ -42,6 +42,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // Reduce Motion turned on/off in System Settings: start or stop the spin.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.statusItem.refresh() }
+        }
+
         keepHooksCurrent()
         notifier.refreshPermission { [weak self] permission in
             // Already set up but never asked (e.g. installed from the CLI): ask now.

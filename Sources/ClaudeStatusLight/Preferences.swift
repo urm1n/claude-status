@@ -18,6 +18,7 @@ enum Pref {
     static let colorInput = "colorInput"
     static let didOfferHookInstall = "didOfferHookInstall"
     static let fetchUsage = "fetchUsage"
+    static let animateWorking = "animateWorking"
 
     static let defaultSound = "Default"
     static let noSound = "None"
@@ -38,6 +39,7 @@ enum Pref {
             colorWorking: "",
             colorInput: "",
             fetchUsage: false,
+            animateWorking: true,
         ])
     }
 
@@ -46,7 +48,7 @@ enum Pref {
     /// The settings that affect the menu bar light.
     static var lightSignature: [String] {
         [colorReady, colorWorking, colorInput].map { defaults.string(forKey: $0) ?? "" }
-            + [symbolMode, showWhenIdle].map { String(defaults.bool(forKey: $0)) }
+            + [symbolMode, showWhenIdle, animateWorking].map { String(defaults.bool(forKey: $0)) }
             + [String(defaults.integer(forKey: idleTimeoutMinutes))]
     }
 
