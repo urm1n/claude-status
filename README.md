@@ -123,7 +123,7 @@ From the same menu you can turn notifications on or off, toggle Launch at Login,
 | Different shape per state | Accessibility mode for color blindness (see below) |
 | Spin while working | The yellow flower turns slowly while Claude works. Off automatically with Reduce Motion |
 | Show light when no session | Hide the flower mark when Claude isn't running |
-| Notifications | On/off for "finished" and "needs you", with a sound for each (default: Glass when finished, Funk when Claude needs you), or silent |
+| Notifications | On/off for "finished" and "needs you", with a sound for each (default: Hero when finished, Ping when Claude needs you), or silent |
 | Only if Claude worked at least… | Skip "finished" notifications for quick answers |
 | Skip when terminal is in front | No notification if you're already looking at that session |
 | Idle timeout | How long a silent "working" session waits before it's treated as ready (default 5 min) |
