@@ -1,0 +1,21 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# App bundle, icon set and DMGs produced by scripts/
+build/
+
+# Xcode (if the package is opened in Xcode)
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Local Claude Code settings
+.claude/settings.local.json
