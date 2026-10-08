@@ -1,9 +1,16 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - run: swift test
-      - run: scripts/build-app.sh --universal
+      - name: Test
+        run: swift test
+      - name: Build app (universal)
+        run: scripts/build-app.sh --universal

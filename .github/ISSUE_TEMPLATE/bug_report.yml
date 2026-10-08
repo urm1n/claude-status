@@ -1,0 +1,38 @@
+name: Bug report
+description: The light or a notification did something unexpected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did the light / notification show, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start Claude Code in ...
+        2. Ask it to ...
+        3. The light stays ...
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and chip
+      placeholder: macOS 15.3, Apple Silicon
+    validations:
+      required: true
+  - type: input
+    id: claude
+    attributes:
+      label: Where you run Claude Code, and its version
+      placeholder: VS Code extension, claude 2.1.292
+    validations:
+      required: true
+  - type: input
+    id: status
+    attributes:
+      label: Output of `~/.claude-status-light/bin/csl-hook status`
+      placeholder: installed

@@ -1,0 +1,42 @@
+name: Release
+
+# Push a tag like v1.2.0 to build a universal DMG and publish a GitHub Release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        run: swift test
+
+      - name: Build DMG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}" BUILD_NUMBER="${GITHUB_RUN_NUMBER}" scripts/make-dmg.sh
+          cd build
+          cp "ClaudeStatusLight-${GITHUB_REF_NAME#v}.dmg" ClaudeStatusLight.dmg
+          shasum -a 256 ClaudeStatusLight*.dmg > SHA256SUMS.txt
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/ClaudeStatusLight.dmg
+            build/ClaudeStatusLight-*.dmg
+            build/SHA256SUMS.txt
+          generate_release_notes: true
+          body: |
+            ### Install
+            1. Download **ClaudeStatusLight.dmg** below, open it, and drag the app to Applications.
+            2. First launch: macOS says it can't verify the app (it isn't notarized). Go to **System Settings → Privacy & Security → Open Anyway**,
+               or run `xattr -dr com.apple.quarantine "/Applications/Claude Status Light.app"`.
+            3. Click **Install Hooks** when asked, allow notifications, and restart open Claude Code sessions.
+
+            See the [README](https://github.com/urm1n/claude-status#readme) for details.

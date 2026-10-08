@@ -1,28 +1,29 @@
+import Darwin
 import Foundation
 
-/// Every location the app and the hook touch. Both overrides exist for tests.
+/// Every location the app and the hook touch. Both overrides exist for testing, and are read
+/// on every access so tests can set them at runtime.
 public enum Paths {
+    private static func env(_ name: String) -> String? {
+        guard let value = getenv(name).map({ String(cString: $0) }), !value.isEmpty else { return nil }
+        return value
+    }
+
     /// `~/.claude-status-light`, or `$CLAUDE_STATUS_LIGHT_DIR`.
-    public static let baseDir: URL = {
-        if let dir = ProcessInfo.processInfo.environment["CLAUDE_STATUS_LIGHT_DIR"], !dir.isEmpty {
-            return URL(fileURLWithPath: dir, isDirectory: true)
-        }
+    public static var baseDir: URL {
+        if let dir = env("CLAUDE_STATUS_LIGHT_DIR") { return URL(fileURLWithPath: dir, isDirectory: true) }
         return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
             .appendingPathComponent(".claude-status-light", isDirectory: true)
-    }()
+    }
 
     /// `~/.claude/settings.json`, or `$CLAUDE_STATUS_LIGHT_SETTINGS`.
-    public static let claudeSettings: URL = {
-        if let file = ProcessInfo.processInfo.environment["CLAUDE_STATUS_LIGHT_SETTINGS"], !file.isEmpty {
-            return URL(fileURLWithPath: file)
-        }
+    public static var claudeSettings: URL {
+        if let file = env("CLAUDE_STATUS_LIGHT_SETTINGS") { return URL(fileURLWithPath: file) }
         return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
             .appendingPathComponent(".claude/settings.json")
-    }()
-
-    public static var usesDefaultBaseDir: Bool {
-        ProcessInfo.processInfo.environment["CLAUDE_STATUS_LIGHT_DIR"]?.isEmpty ?? true
     }
+
+    public static var usesDefaultBaseDir: Bool { env("CLAUDE_STATUS_LIGHT_DIR") == nil }
 
     public static var sessionsDir: URL { baseDir.appendingPathComponent("sessions", isDirectory: true) }
     public static var binDir: URL { baseDir.appendingPathComponent("bin", isDirectory: true) }

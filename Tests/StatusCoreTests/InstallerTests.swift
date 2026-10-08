@@ -2,6 +2,19 @@ import XCTest
 @testable import StatusCore
 
 final class InstallerTests: XCTestCase {
+    private var sandbox: URL!
+
+    // Keep backups and helper paths out of the developer's real ~/.claude-status-light.
+    override func setUp() {
+        sandbox = FileManager.default.temporaryDirectory.appendingPathComponent("csl-tests-\(UUID().uuidString)")
+        setenv("CLAUDE_STATUS_LIGHT_DIR", sandbox.path, 1)
+    }
+
+    override func tearDown() {
+        unsetenv("CLAUDE_STATUS_LIGHT_DIR")
+        try? FileManager.default.removeItem(at: sandbox)
+    }
+
     /// Shaped like a real settings.json with someone else's hooks already present.
     let original = """
     {

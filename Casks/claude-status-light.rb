@@ -1,13 +1,13 @@
-# Homebrew cask template. Publish a DMG from scripts/make-dmg.sh as a GitHub release,
-# then fill in the URL and sha256 (printed by make-dmg.sh) and put this in a tap.
+# Homebrew cask template. To offer `brew install --cask`, copy this into a tap repo
+# (e.g. github.com/urm1n/homebrew-tap) and set sha256 from the release's SHA256SUMS.txt.
 cask "claude-status-light" do
   version "1.0.0"
   sha256 "REPLACE_WITH_SHA256_FROM_make-dmg.sh"
 
-  url "https://github.com/OWNER/claude-status-light/releases/download/v#{version}/ClaudeStatusLight-#{version}.dmg"
+  url "https://github.com/urm1n/claude-status/releases/download/v#{version}/ClaudeStatusLight-#{version}.dmg"
   name "Claude Status Light"
   desc "Menu bar light that shows what Claude Code is doing"
-  homepage "https://github.com/OWNER/claude-status-light"
+  homepage "https://github.com/urm1n/claude-status"
 
   depends_on macos: ">= :sonoma"
 
