@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 (2026-10-09)
 
 - **Limit warning**: one notification when the session or weekly limit reaches 90% used, with time to reset. On by default (Settings → Usage limits).
 - **Usage % next to the light** (optional, off by default): shows current session usage beside the flower. It drops to 0% on its own when the window resets.
