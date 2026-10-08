@@ -25,11 +25,38 @@
 
 ## Install
 
+Requires macOS 14 or later and [Claude Code](https://claude.com/claude-code).
+
+### Option 1: Build it yourself
+
+The app is built on your own Mac, so there's no Apple security warning.
+
+1. Install Apple's developer tools, if you don't have them yet:
+
+   ```bash
+   xcode-select --install
+   ```
+
+   Click **Install** in the window that opens and wait for it to finish. If it says the tools are already installed, go to step 2.
+
+2. Build and install the app. This takes a minute or two.
+
+   ```bash
+   git clone https://github.com/urm1n/claude-status.git
+   cd claude-status
+   ./install.sh
+   ```
+
+3. When the app opens, click **Install Hooks** and allow notifications.
+4. Restart Claude Code.
+
+### Option 2: Download the app
+
+No developer tools needed.
+
 1. Download **[ClaudeStatusLight.dmg](https://github.com/urm1n/claude-status/releases/latest/download/ClaudeStatusLight.dmg)** and drag the app into **Applications**.
 2. Open the app, click **Install Hooks**, and allow notifications.
 3. Restart Claude Code.
-
-Requires macOS 14 or later and [Claude Code](https://claude.com/claude-code).
 
 > [!NOTE]
 > **macOS says "Apple could not verify…"?** The app is free and not notarized, so macOS asks you to confirm once.
@@ -63,24 +90,18 @@ Click the light to see your sessions and usage limits. You also get a notificati
 - [User guide](docs/guide.md): the menu, notifications, usage limits, and settings
 - [Troubleshooting](docs/troubleshooting.md): fixes for common problems
 - [How it works](docs/how-it-works.md): hooks, privacy, and what is stored
+- [Contributing](CONTRIBUTING.md): building, testing, and development
 
 ## Update
 
-Download the [latest release](https://github.com/urm1n/claude-status/releases/latest) and replace the app in Applications. Your settings are kept.
+- **Built it yourself:** in the `claude-status` folder, run `git pull && ./install.sh`.
+- **Downloaded the app:** download the [latest release](https://github.com/urm1n/claude-status/releases/latest) and replace the app in Applications.
+
+Your settings are kept.
 
 ## Uninstall
 
 Click the light, choose **Uninstall Hooks…**, then move the app to the Trash. Your Claude Code settings are restored exactly as they were.
-
-## Build from source
-
-```bash
-git clone https://github.com/urm1n/claude-status.git
-cd claude-status
-./install.sh
-```
-
-Requires the Xcode Command Line Tools. See [CONTRIBUTING.md](CONTRIBUTING.md) for development.
 
 ## Privacy
 

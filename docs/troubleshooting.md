@@ -1,5 +1,6 @@
 # Troubleshooting
 
+- [`./install.sh` fails](#installsh-fails)
 - ["Apple could not verify…" on first launch](#apple-could-not-verify-on-first-launch)
 - [The light doesn't change while Claude is running](#the-light-doesnt-change-while-claude-is-running)
 - [No notifications](#no-notifications)
@@ -9,6 +10,12 @@
 - [I can't see the light](#i-cant-see-the-light)
 - [My terminal shows a new status line](#my-terminal-shows-a-new-status-line)
 - [Does it slow Claude Code down?](#does-it-slow-claude-code-down)
+
+## `./install.sh` fails
+
+- **"Command Line Tools are required" or "git: command not found":** run `xcode-select --install`, wait for the install to finish, then run `./install.sh` again.
+- **"You have not agreed to the Xcode license":** run `sudo xcodebuild -license accept`, then run `./install.sh` again.
+- **Something else:** download the app instead (Option 2 in the README), or [open an issue](https://github.com/urm1n/claude-status/issues/new/choose) with the error.
 
 ## "Apple could not verify…" on first launch
 
