@@ -21,6 +21,9 @@ enum Pref {
     static let animateWorking = "animateWorking"
 
     static let defaultSound = "Default"
+    /// Out of the box: a success chime when Claude finishes, an alert when it needs you.
+    static let doneSoundDefault = "Glass"
+    static let inputSoundDefault = "Funk"
     static let noSound = "None"
 
     static func registerDefaults() {
@@ -28,8 +31,8 @@ enum Pref {
             notificationsEnabled: true,
             notifyDone: true,
             notifyInput: true,
-            soundDone: defaultSound,
-            soundInput: defaultSound,
+            soundDone: doneSoundDefault,
+            soundInput: inputSoundDefault,
             onlyWhenNotFrontmost: false,
             minDoneSeconds: 0,
             idleTimeoutMinutes: 5,

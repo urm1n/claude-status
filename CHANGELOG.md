@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Distinct sounds by default**: "Glass" (success) when Claude finishes, "Funk" (alert) when it needs you. Change them in Settings → Notifications.
 - **Pressing Esc turns the light green right away.** No hook fires when you stop Claude, so the app watches the session transcript for Claude Code's interrupt note. This also covers pressing Esc at a permission prompt. Before, the light stayed yellow for up to a minute.
 - **The flower spins slowly (clockwise) while Claude is working.** It's a Core Animation layer, so it costs no CPU. It's off with Reduce Motion or shape mode, and there's a toggle in Settings.
 - **New icon**: an orange flower mark. The app icon uses it, and so does the menu bar light: a flower in green, yellow or red instead of a circle, and a plain flower when no session is open.

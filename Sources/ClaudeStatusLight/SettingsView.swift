@@ -73,8 +73,8 @@ struct SettingsView: View {
     @AppStorage(Pref.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(Pref.notifyDone) private var notifyDone = true
     @AppStorage(Pref.notifyInput) private var notifyInput = true
-    @AppStorage(Pref.soundDone) private var soundDone = Pref.defaultSound
-    @AppStorage(Pref.soundInput) private var soundInput = Pref.defaultSound
+    @AppStorage(Pref.soundDone) private var soundDone = Pref.doneSoundDefault
+    @AppStorage(Pref.soundInput) private var soundInput = Pref.inputSoundDefault
     @AppStorage(Pref.onlyWhenNotFrontmost) private var onlyWhenNotFrontmost = false
     @AppStorage(Pref.minDoneSeconds) private var minDoneSeconds = 0
 
