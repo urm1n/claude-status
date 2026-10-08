@@ -2,13 +2,12 @@ import AppKit
 import StatusCore
 
 enum IconRenderer {
-    /// The menu bar image. Colored states are drawn with a faint outline so yellow and green stay
-    /// readable on a light menu bar; "no session" is the app's flower mark as a template image,
-    /// which macOS tints to match the menu bar.
+    /// The menu bar image: the app's flower mark, filled with the state's color, or as a template
+    /// image (tinted to match the menu bar) when no session is open.
     static func statusImage(for state: SessionState?) -> NSImage {
         let image: NSImage
         if let state {
-            image = Pref.defaults.bool(forKey: Pref.symbolMode) ? symbol(for: state) : circle(for: state)
+            image = Pref.defaults.bool(forKey: Pref.symbolMode) ? symbol(for: state) : flower(for: state)
         } else {
             image = BrandMark.templateImage()
         }
@@ -16,32 +15,26 @@ enum IconRenderer {
         return image
     }
 
-    /// Small dot for menu rows.
+    /// Small flower for menu rows.
     static func dot(for state: SessionState) -> NSImage {
-        let color = Pref.color(for: state)
-        return NSImage(size: NSSize(width: 10, height: 10), flipped: false) { rect in
-            let path = NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1))
-            color.setFill()
-            path.fill()
-            NSColor.black.withAlphaComponent(0.2).setStroke()
-            path.lineWidth = 0.5
-            path.stroke()
-            return true
-        }
+        flower(color: Pref.color(for: state), canvas: 12, markSize: 11, outline: 0.5)
     }
 
-    private static func circle(for state: SessionState) -> NSImage {
-        let color = Pref.color(for: state)
-        return NSImage(size: NSSize(width: 18, height: 18), flipped: false) { rect in
-            let diameter: CGFloat = 12
-            let frame = NSRect(x: (rect.width - diameter) / 2, y: (rect.height - diameter) / 2,
-                               width: diameter, height: diameter)
+    /// The flower mark filled with the state's color. A faint outline keeps yellow and green
+    /// readable on a light menu bar.
+    private static func flower(for state: SessionState) -> NSImage {
+        flower(color: Pref.color(for: state), canvas: 18, markSize: 15, outline: 0.7)
+    }
+
+    private static func flower(color: NSColor, canvas: CGFloat, markSize: CGFloat, outline: CGFloat) -> NSImage {
+        NSImage(size: NSSize(width: canvas, height: canvas), flipped: true) { rect in
+            let inset = (rect.width - markSize) / 2
+            let path = BrandMark.path(fitting: rect.insetBy(dx: inset, dy: inset))
             color.setFill()
-            NSBezierPath(ovalIn: frame).fill()
-            let edge = NSBezierPath(ovalIn: frame.insetBy(dx: 0.35, dy: 0.35))
-            edge.lineWidth = 0.7
+            path.fill()
+            path.lineWidth = outline
             NSColor.black.withAlphaComponent(0.3).setStroke()
-            edge.stroke()
+            path.stroke()
             return true
         }
     }
@@ -58,6 +51,6 @@ enum IconRenderer {
         let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
             .applying(NSImage.SymbolConfiguration(paletteColors: [fill.isLight ? .black : .white, fill]))
         return NSImage(systemSymbolName: name, accessibilityDescription: nil)?
-            .withSymbolConfiguration(config) ?? circle(for: state)
+            .withSymbolConfiguration(config) ?? flower(for: state)
     }
 }
