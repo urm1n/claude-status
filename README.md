@@ -29,17 +29,13 @@ Requires macOS 14 or later and [Claude Code](https://claude.com/claude-code).
 
 ### Option 1: Build it yourself
 
+> [!NOTE]
+> This needs Apple's Xcode Command Line Tools. If you don't have them, use [Option 2](#option-2-download-the-app) instead.
+> Not sure? Run `xcode-select -p` in Terminal. If it prints a folder path, you have them.
+
 The app is built on your own Mac, so there's no Apple security warning.
 
-1. Install Apple's developer tools, if you don't have them yet:
-
-   ```bash
-   xcode-select --install
-   ```
-
-   Click **Install** in the window that opens and wait for it to finish. If it says the tools are already installed, go to step 2.
-
-2. Build and install the app. This takes a minute or two.
+1. Build and install the app. This takes a minute or two.
 
    ```bash
    git clone https://github.com/urm1n/claude-status.git
@@ -47,8 +43,8 @@ The app is built on your own Mac, so there's no Apple security warning.
    ./install.sh
    ```
 
-3. When the app opens, click **Install Hooks** and allow notifications.
-4. Restart Claude Code.
+2. When the app opens, click **Install Hooks** and allow notifications.
+3. Restart Claude Code.
 
 ### Option 2: Download the app
 

@@ -13,7 +13,7 @@
 
 ## `./install.sh` fails
 
-- **"Command Line Tools are required" or "git: command not found":** run `xcode-select --install`, wait for the install to finish, then run `./install.sh` again.
+- **"Building needs Apple's Xcode Command Line Tools" or "git: command not found":** building needs those tools. Download the app instead (Option 2 in the README), or install the tools with `xcode-select --install` and run `./install.sh` again.
 - **"You have not agreed to the Xcode license":** run `sudo xcodebuild -license accept`, then run `./install.sh` again.
 - **Something else:** download the app instead (Option 2 in the README), or [open an issue](https://github.com/urm1n/claude-status/issues/new/choose) with the error.
 

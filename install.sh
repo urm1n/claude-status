@@ -7,9 +7,12 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="Claude Status Light"
 
 if ! xcode-select -p >/dev/null 2>&1; then
-    echo "Xcode Command Line Tools are required. Installing..."
-    xcode-select --install
-    echo "Run ./install.sh again when that finishes."
+    echo "Building needs Apple's Xcode Command Line Tools, which aren't installed."
+    echo
+    echo "Download the ready-made app instead (no tools needed):"
+    echo "  https://github.com/urm1n/claude-status/releases/latest/download/ClaudeStatusLight.dmg"
+    echo
+    echo "Or install the tools with 'xcode-select --install' and run ./install.sh again."
     exit 1
 fi
 
