@@ -146,7 +146,7 @@ struct SettingsView: View {
                 Text("""
                 Session and weekly usage always come from Claude Code sessions in a terminal, offline. \
                 Turn this on to also get them for VS Code and other editors: it reads the same numbers as /usage \
-                with Claude Code’s saved login (macOS asks once for Keychain access). The login only goes to Anthropic.
+                with Claude Code’s saved login. The login only goes to Anthropic.
                 """)
                 .font(.caption).foregroundStyle(.secondary)
             }

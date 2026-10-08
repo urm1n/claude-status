@@ -111,7 +111,7 @@ These need a Claude **Pro or Max** plan. The numbers come from one of two places
 | Source | Works in | How |
 |---|---|---|
 | **Claude Code's status line** (always on) | Terminal sessions | Claude Code passes the usage to the app's status line after every reply. Official, offline. If you already had a status line, it keeps showing; the app wraps it. If you didn't, the terminal shows a short usage line. |
-| **Fetch usage from Anthropic** (opt-in) | Everywhere, including VS Code | Click **Show Usage from Anthropic…** in the menu, or turn it on in Settings. It reads the same numbers as `/usage` using the login Claude Code already saved. macOS asks once for Keychain access; choose **Always Allow**. It refreshes every 5 minutes while a session is open, and when you open the menu. |
+| **Fetch usage from Anthropic** (opt-in) | Everywhere, including VS Code | Click **Show Usage from Anthropic…** in the menu, or turn it on in Settings. It reads the same numbers as `/usage` using the login Claude Code already saved, read the same way Claude Code reads it, so there's no Keychain prompt. It refreshes every 5 minutes while a session is open, and when you open the menu. |
 
 The fetch uses an endpoint Anthropic doesn't document, so it could stop working if they change it. The status line source keeps working either way.
 
@@ -177,7 +177,7 @@ Another tool has also hooked into Claude Code (for example a "notifier" script t
 
 - They need a Pro or Max plan. API-key accounts have no usage limits.
 - From a terminal session they appear after Claude's first reply. Restart sessions that were open before you installed or updated the app.
-- In VS Code, turn on **Fetch usage from Anthropic**. If the menu says *Keychain access was denied*, click **Try Again** and choose **Always Allow**. After updating the app, macOS may ask again.
+- In VS Code, turn on **Fetch usage from Anthropic**. If the menu says it couldn't read Claude Code's login, run `claude` once in a terminal to log in, then click **Try Again**.
 - *Login expired* means Claude Code's saved login needs a refresh. Use Claude Code once and it renews it.
 </details>
 

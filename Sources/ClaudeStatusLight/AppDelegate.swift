@@ -197,14 +197,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Usage
 
-    /// Explains what turning on usage fetching does before doing it (Keychain prompt, network).
+    /// Explains what turning on usage fetching does before doing it (reads the login, network).
     func enableUsageFetching() {
         let alert = NSAlert()
         alert.messageText = "Show usage from Anthropic?"
         alert.informativeText = """
         Claude Status Light will read the same numbers as Claude Code’s /usage command, using the login \
-        Claude Code already saved on this Mac. macOS will ask once to allow access to “Claude Code-credentials” \
-        in your Keychain: choose Always Allow.
+        Claude Code already saved on this Mac (read the same way Claude Code reads it, so there's no prompt).
 
         The login is only sent to Anthropic, never stored or shared. You can turn this off in Settings.
         """

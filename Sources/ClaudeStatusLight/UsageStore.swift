@@ -1,5 +1,4 @@
 import Foundation
-import Security
 import StatusCore
 
 /// Session (5-hour) and weekly usage, from whichever source is freshest:
@@ -144,7 +143,8 @@ final class UsageStore {
     }
 }
 
-/// Reads the same numbers as Claude Code's `/usage`. The login token is read from the Keychain for
+/// Reads the same numbers as Claude Code's `/usage`. The login token is read from the Keychain (via
+/// `/usr/bin/security`, like Claude Code itself) for
 /// each request and never stored, logged, refreshed, or sent anywhere but api.anthropic.com.
 enum UsageFetcher {
     enum Failure: Error, Equatable {
@@ -159,7 +159,7 @@ enum UsageFetcher {
         var message: String {
             switch self {
             case .notLoggedIn: return "Claude Code isn’t logged in on this Mac"
-            case .keychainDenied: return "Keychain access was denied"
+            case .keychainDenied: return "Couldn’t read Claude Code’s login from the Keychain"
             case .loginExpired: return "Login expired: use Claude Code once to refresh it"
             case .notSubscriber: return "No usage limits on this account"
             case .http(let code): return "Anthropic returned an error (\(code))"
@@ -204,24 +204,27 @@ enum UsageFetcher {
         return .success(snapshot)
     }
 
-    /// Claude Code stores `{"claudeAiOauth": {"accessToken", "expiresAt" (ms), …}}` as a generic password.
-    /// macOS asks the user once before letting this app read it.
+    /// Claude Code stores `{"claudeAiOauth": {"accessToken", "expiresAt" (ms), …}}` as a generic password,
+    /// written and read through Apple's `/usr/bin/security` tool, which is the only app on that item's
+    /// access list. Reading it the same way means macOS never prompts, and it keeps working after app
+    /// updates and after Claude Code refreshes its login (which resets the access list).
     private static func readToken() -> Result<String, Failure> {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        switch status {
-        case errSecSuccess: break
-        case errSecItemNotFound: return .failure(.notLoggedIn)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+        process.arguments = ["find-generic-password", "-s", keychainService, "-w"]
+        let output = Pipe()
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        do { try process.run() } catch { return .failure(.keychainDenied) }
+        let raw = output.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        switch process.terminationStatus {
+        case 0: break
+        case 44: return .failure(.notLoggedIn) // errSecItemNotFound
         default: return .failure(.keychainDenied)
         }
-        guard let data = item as? Data,
-              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+        let data = decodePasswordOutput(raw)
+        guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let oauth = json["claudeAiOauth"] as? [String: Any],
               let token = oauth["accessToken"] as? String, !token.isEmpty else { return .failure(.notLoggedIn) }
         // Never refresh the token ourselves: that would rotate Claude Code's login out from under it.
@@ -230,5 +233,20 @@ enum UsageFetcher {
             return .failure(.loginExpired)
         }
         return .success(token)
+    }
+
+    /// `security -w` prints the password as text, or as hex when it isn't printable.
+    private static func decodePasswordOutput(_ raw: Data) -> Data {
+        let text = String(decoding: raw, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.first == "{" { return Data(text.utf8) }
+        guard text.count.isMultiple(of: 2), text.allSatisfy(\.isHexDigit) else { return Data(text.utf8) }
+        var bytes = [UInt8]()
+        var index = text.startIndex
+        while index < text.endIndex {
+            let next = text.index(index, offsetBy: 2)
+            bytes.append(UInt8(text[index..<next], radix: 16) ?? 0)
+            index = next
+        }
+        return Data(bytes)
     }
 }
