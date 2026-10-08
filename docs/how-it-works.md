@@ -17,6 +17,15 @@ Claude Status Light has three parts:
 2. **`csl-hook`.** A small native helper (no shell scripts, no `jq`, no Node). For each event it reads the JSON payload, updates one small file for that session, and exits. It takes about 10 ms, prints nothing, and always exits 0, so it can't block, slow down or break Claude Code.
 3. **The app.** It watches the sessions folder with a kernel file-system watcher, and each session's Claude process with a process-exit watcher. Nothing polls. The only timer is a one-shot timer, armed only while a session is "working", that handles stuck sessions.
 
+## Privacy
+
+- **No network access by default.** No analytics, no update checks, no accounts. The only request the app can ever make is the opt-in usage fetch, to `api.anthropic.com`.
+- **Your login.** With usage fetching on, Claude Code's saved login is read for each request and sent only to Anthropic. The app never stores, logs or refreshes it.
+- **What's stored:** only what the light needs. That's the session id, project folder, state, a short reason ("Permission needed: Bash"), timestamps, process ids, and your usage percentages.
+- **What's never stored:** your prompts, code, tool inputs, or Claude's replies.
+- **Transcripts.** To notice when you press Esc, the app reads the last few kilobytes of the active session's transcript and looks only for Claude Code's "interrupted" note. Nothing from it is kept.
+- **`~/.claude/settings.json`** changes only to add or remove the app's own hooks and status line. The file is backed up first, and everything else is left exactly as it was ([details](#how-settingsjson-is-edited)).
+
 ## Events → light
 
 | Claude Code hook event | Light |

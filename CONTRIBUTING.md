@@ -33,7 +33,7 @@ swift test           # run the tests
 | `Tests/StatusCoreTests/` | Unit tests for the state machine and the settings installer |
 | `scripts/` | `build-app.sh` (the .app), `make-dmg.sh` (a universal DMG), `make-icon.swift` (app icon), `make-docs-images.sh` (README images) |
 | `Resources/AppIcon.svg` | The logo. The flower path also lives in `BrandMark.swift`, which draws the menu bar icon and the app icon |
-| `docs/` | [How it works](docs/how-it-works.md), the original [requirements](docs/requirements.md), images |
+| `docs/` | [User guide](docs/guide.md), [Troubleshooting](docs/troubleshooting.md), [How it works](docs/how-it-works.md), the original [requirements](docs/requirements.md), images |
 
 ### Testing without touching your real setup
 
