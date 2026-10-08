@@ -13,6 +13,11 @@ public enum HookRunner {
         try? fm.createDirectory(at: Paths.sessionsDir, withIntermediateDirectories: true)
 
         // Parallel tool calls fire hooks concurrently; serialize the read-modify-write.
+        withLock { apply(input, environment: environment, now: now) }
+    }
+
+    /// Runs `body` holding the lock that hooks and the app share for session files.
+    public static func withLock<T>(_ body: () -> T) -> T {
         let lockFd = open(Paths.lockFile.path, O_CREAT | O_RDWR, 0o644)
         if lockFd >= 0 { flock(lockFd, LOCK_EX) }
         defer {
@@ -21,6 +26,25 @@ public enum HookRunner {
                 close(lockFd)
             }
         }
+        return body()
+    }
+
+    /// Marks a session as stopped by the user, unless a newer hook event already moved it on.
+    @discardableResult
+    public static func markInterrupted(fileKey: String, ifUpdatedAt expected: Double,
+                                       now: Double = Date().timeIntervalSince1970) -> Bool {
+        let file = Paths.sessionsDir.appendingPathComponent(fileKey + ".json")
+        return withLock {
+            guard let data = try? Data(contentsOf: file),
+                  let record = try? JSONDecoder().decode(SessionRecord.self, from: data),
+                  record.updatedAt == expected, record.state != .ready else { return false }
+            writeAtomically(HookReducer.interrupted(record, now: now), to: file)
+            return true
+        }
+    }
+
+    private static func apply(_ input: HookInput, environment: [String: String], now: Double) {
+        let fm = FileManager.default
 
         let file = Paths.sessionFile(for: input.sessionId)
         let existing = (try? Data(contentsOf: file)).flatMap { try? JSONDecoder().decode(SessionRecord.self, from: $0) }

@@ -39,7 +39,7 @@ final class WorkingAnimation {
 
         let spin = CABasicAnimation(keyPath: "transform.rotation.z")
         spin.fromValue = 0
-        spin.toValue = -2 * Double.pi // clockwise
+        spin.toValue = 2 * Double.pi // clockwise: the status item's layer is flipped (y down)
         spin.duration = period
         spin.repeatCount = .infinity
         spin.isRemovedOnCompletion = false

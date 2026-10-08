@@ -48,6 +48,9 @@ public struct SessionRecord: Codable, Equatable, Sendable {
     public var claudePidStart: Double?
     /// The GUI app hosting the session (Terminal, iTerm, VS Code...), used to focus it.
     public var appPid: Int32?
+    /// Claude Code's transcript for this session. The app watches its tail for the interrupt
+    /// marker, because no hook fires when the user stops Claude with Esc.
+    public var transcriptPath: String?
 
     public init(sessionId: String, projectDir: String, now: Double) {
         self.sessionId = sessionId

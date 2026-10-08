@@ -36,7 +36,7 @@ The state machine lives in [`Sources/StatusCore/HookReducer.swift`](../Sources/S
 
 | Situation | What happens |
 |---|---|
-| You press **Esc** mid-turn (no `Stop` event) | Claude Code's `idle_prompt` notification (after ~60 s) turns it green. If that never arrives, the idle timeout (default 5 min) does. |
+| You press **Esc** mid-turn, or at a permission prompt (no hook fires) | While a session is yellow or red, the app watches its transcript (`transcript_path` from the hooks). After each write it reads the last 64 KB and checks whether the last conversation entry is Claude Code's `[Request interrupted by user…]` note, newer than the current turn. If so, it turns green within a second. Fallbacks: `idle_prompt` after ~60 s, then the idle timeout. |
 | Terminal closed, Claude crashed | The app watches the Claude process and removes the session the moment it exits. |
 | A **background subagent** keeps working while the main agent waits for permission | Stays red. Only the blocked agent's own activity, or the pending tool call finishing, clears it. |
 | Parallel tool calls finish while a permission prompt is open | Stays red. Only the pending tool call clears it. |

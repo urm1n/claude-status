@@ -22,6 +22,8 @@ final class SessionStore {
 
     private var dirSource: DispatchSourceFileSystemObject?
     private var processSources: [String: (pid: Int32, source: DispatchSourceProcess)] = [:]
+    private var transcriptSources: [String: (path: String, source: DispatchSourceFileSystemObject)] = [:]
+    private var pendingInterruptChecks: [String: DispatchWorkItem] = [:]
     private var timeoutTimer: DispatchSourceTimer?
     private var cache: [String: (modified: Date, record: SessionRecord)] = [:]
     private var hasLoaded = false
@@ -130,6 +132,7 @@ final class SessionStore {
         hasLoaded = true
         records = fresh
         cache = freshCache
+        updateTranscriptWatchers()
         scheduleTimeout()
         onChange?()
     }
@@ -147,11 +150,61 @@ final class SessionStore {
             } else if record.state == .working,
                       previous?.state != .working || record.turnStartedAt != previous?.turnStartedAt {
                 onEvent?(.resumed(key: key, record))
+            } else if record.lastEvent == HookReducer.interruptedEvent, previous?.lastEvent != record.lastEvent {
+                onEvent?(.resumed(key: key, record)) // the user stopped Claude: clear its notifications
             }
         }
         for key in old.keys where new[key] == nil {
             onEvent?(.ended(key: key))
         }
+    }
+
+    // MARK: Interrupts (Esc)
+
+    /// No hook fires when the user stops Claude, so while a session is working or waiting,
+    /// watch its transcript and look for Claude Code's interrupt marker after each write.
+    private func updateTranscriptWatchers() {
+        for (key, watcher) in transcriptSources {
+            let record = records[key]
+            if record == nil || record?.state == .ready || record?.transcriptPath != watcher.path {
+                watcher.source.cancel()
+                transcriptSources[key] = nil
+                pendingInterruptChecks.removeValue(forKey: key)?.cancel()
+            }
+        }
+        for (key, record) in records where record.state != .ready && transcriptSources[key] == nil {
+            guard let path = record.transcriptPath else { continue }
+            let fd = open(path, O_EVTONLY)
+            guard fd >= 0 else { continue }
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: fd, eventMask: [.write, .extend, .delete, .rename], queue: .main)
+            source.setEventHandler { [weak self] in
+                MainActor.assumeIsolated { self?.scheduleInterruptCheck(key) }
+            }
+            source.setCancelHandler { close(fd) }
+            transcriptSources[key] = (path, source)
+            source.resume()
+            scheduleInterruptCheck(key) // it may have happened before we started watching
+        }
+    }
+
+    /// Transcripts get many writes while Claude streams; check once things settle.
+    private func scheduleInterruptCheck(_ key: String) {
+        pendingInterruptChecks[key]?.cancel()
+        let check = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated { self?.checkForInterrupt(key) }
+        }
+        pendingInterruptChecks[key] = check
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: check)
+    }
+
+    private func checkForInterrupt(_ key: String) {
+        pendingInterruptChecks[key] = nil
+        guard let record = records[key], record.state != .ready, let path = record.transcriptPath,
+              let interruptedAt = TranscriptTail.interruptTime(URL(fileURLWithPath: path)),
+              interruptedAt > record.stateSince else { return } // an older marker, from before this turn
+        // Writes the session file; the folder watcher then reloads and turns the light green.
+        HookRunner.markInterrupted(fileKey: key, ifUpdatedAt: record.updatedAt)
     }
 
     private func watchProcess(key: String, pid: Int32) {

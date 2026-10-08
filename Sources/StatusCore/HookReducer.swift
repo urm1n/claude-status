@@ -13,11 +13,12 @@ public struct HookInput: Equatable, Sendable {
     public var source: String?
     public var errorType: String?
     public var serverName: String?
+    public var transcriptPath: String?
 
     public init(event: String, sessionId: String, cwd: String? = nil, toolName: String? = nil,
                 toolUseId: String? = nil, agentId: String? = nil, notificationType: String? = nil,
                 message: String? = nil, source: String? = nil, errorType: String? = nil,
-                serverName: String? = nil) {
+                serverName: String? = nil, transcriptPath: String? = nil) {
         self.event = event
         self.sessionId = sessionId
         self.cwd = cwd
@@ -29,6 +30,7 @@ public struct HookInput: Equatable, Sendable {
         self.source = source
         self.errorType = errorType
         self.serverName = serverName
+        self.transcriptPath = transcriptPath
     }
 
     public init?(json: [String: Any]) {
@@ -41,7 +43,8 @@ public struct HookInput: Equatable, Sendable {
                   toolUseId: str("tool_use_id"), agentId: str("agent_id"),
                   notificationType: str("notification_type"), message: str("message"),
                   source: str("source"), errorType: str("error_type"),
-                  serverName: str("server_name") ?? str("mcp_server_name"))
+                  serverName: str("server_name") ?? str("mcp_server_name"),
+                  transcriptPath: str("transcript_path"))
     }
 }
 
@@ -73,6 +76,23 @@ public enum HookReducer {
         "Stop", "StopFailure",
     ]
 
+    /// The user pressed Esc (or rejected a permission prompt): the turn is over, nothing is pending.
+    /// No hook reports this; the app detects it from the transcript and applies it here.
+    public static let interruptedEvent = "Interrupted"
+
+    public static func interrupted(_ record: SessionRecord, now: Double) -> SessionRecord {
+        var record = record
+        if record.state != .ready { record.stateSince = now }
+        record.state = .ready
+        record.reason = nil
+        record.lastEvent = interruptedEvent
+        record.outcome = "interrupted"
+        record.updatedAt = now
+        record.pendingToolUseId = nil
+        record.pendingAgentId = nil
+        return record
+    }
+
     static let inputNotificationTypes: Set<String> = [
         "permission_prompt", "elicitation_dialog", "elicitation_url_dialog", "agent_needs_input",
     ]
@@ -83,6 +103,7 @@ public enum HookReducer {
 
         var record = existing ?? SessionRecord(sessionId: input.sessionId, projectDir: projectDir, now: now)
         if !projectDir.isEmpty { record.projectDir = projectDir }
+        if let transcript = input.transcriptPath { record.transcriptPath = transcript }
         record.updatedAt = now
         record.lastEvent = input.event
 

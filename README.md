@@ -178,9 +178,9 @@ Another tool has also hooked into Claude Code (for example a "notifier" script t
 </details>
 
 <details>
-<summary><b>The light was stuck on yellow after I pressed Esc</b></summary>
+<summary><b>The light stays yellow after I press Esc</b></summary>
 
-Claude Code doesn't report a turn ending when you interrupt it. The light corrects itself after about 60 seconds, when Claude Code reports it's waiting for input. If it doesn't, it goes back to green after the idle timeout (Settings → Sessions).
+When you stop Claude, the light should turn green within a second. The app sees Claude Code's "interrupted" note in the session transcript. Sessions that were already open before you installed or updated the app need a restart first. As a fallback, it turns green after about 60 seconds, when Claude Code reports it's waiting for input, or after the idle timeout (Settings → Sessions).
 </details>
 
 <details>
@@ -202,6 +202,7 @@ No. Each hook call takes about 10 ms, never blocks Claude, prints nothing, and a
 - With usage fetching on, Claude Code's login is read from the Keychain for each request and sent only to Anthropic. It's never stored, logged or refreshed by this app.
 - It stores only what it needs to draw the light: session id, project folder, state, a short reason ("Permission needed: Bash"), timestamps and process ids.
 - It **never** stores your prompts, code, tool inputs or Claude's replies. The hook ignores those fields.
+- While a session is working, the app reads the last few kilobytes of that session's transcript after each write, only to spot Claude Code's "[Request interrupted by user]" note when you press Esc. Nothing from it is kept.
 - It only changes `~/.claude/settings.json` when you click Install or Uninstall (or when an update needs new entries). It backs the file up first, only adds its own hooks and status line, and leaves everything else exactly as it was.
 
 More detail in **[How it works](docs/how-it-works.md)**.
