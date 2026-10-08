@@ -7,11 +7,14 @@ import StatusCore
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let store: SessionStore
+    private let notifier: Notifier
     private unowned let app: AppDelegate
     private var lastRendered: (state: SessionState?, symbols: Bool, colors: [String])?
+    private var menuIsOpen = false
 
-    init(store: SessionStore, app: AppDelegate) {
+    init(store: SessionStore, notifier: Notifier, app: AppDelegate) {
         self.store = store
+        self.notifier = notifier
         self.app = app
         super.init()
         let menu = NSMenu()
@@ -41,7 +44,21 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         return sessions.map { "\($0.record.folderName): \($0.state.label)" }.joined(separator: "\n")
     }
 
+    /// Rebuilds the menu if it's open, e.g. after the user allowed notifications in System Settings.
+    func permissionChanged() {
+        if menuIsOpen, let menu = statusItem.menu { menuNeedsUpdate(menu) }
+    }
+
     // MARK: NSMenuDelegate
+
+    func menuWillOpen(_ menu: NSMenu) {
+        menuIsOpen = true
+        notifier.refreshPermission()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        menuIsOpen = false
+    }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
@@ -54,6 +71,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             warning.isEnabled = false
             menu.addItem(warning)
             menu.addItem(item("Install Hooks…", #selector(installHooks)))
+            menu.addItem(.separator())
+        }
+
+        let wantsNotifications = Pref.defaults.bool(forKey: Pref.notificationsEnabled)
+        if wantsNotifications, notifier.permission == .denied || notifier.permission == .notDetermined {
+            let warning = NSMenuItem(title: "Notifications are off in macOS", action: nil, keyEquivalent: "")
+            warning.image = NSImage(systemSymbolName: "bell.slash.fill", accessibilityDescription: nil)
+            warning.isEnabled = false
+            menu.addItem(warning)
+            menu.addItem(item("Turn On Notifications…", #selector(turnOnNotifications)))
             menu.addItem(.separator())
         }
 
@@ -126,8 +153,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     @objc private func toggleNotifications() {
-        Pref.defaults.set(!Pref.defaults.bool(forKey: Pref.notificationsEnabled), forKey: Pref.notificationsEnabled)
+        let enable = !Pref.defaults.bool(forKey: Pref.notificationsEnabled)
+        Pref.defaults.set(enable, forKey: Pref.notificationsEnabled)
+        if enable { app.ensureNotificationPermission() }
     }
+
+    @objc private func turnOnNotifications() { app.turnOnNotifications() }
 
     @objc private func toggleLaunchAtLogin() { app.setLaunchAtLogin(!LoginItem.isEnabled) }
     @objc private func installHooks() { app.installHooks() }

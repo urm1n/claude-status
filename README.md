@@ -79,7 +79,7 @@ This builds the app, puts it in `/Applications` and opens it. You don't get a Ga
 ## Set it up (one click)
 
 1. When the app opens, it asks: **"Connect Claude Status Light to Claude Code?"** Click **Install Hooks**.
-2. When macOS asks, **Allow** notifications.
+2. When macOS asks, **Allow** notifications. If you miss the prompt, the menu shows **Turn On Notifications…**.
 3. **Restart any Claude Code sessions that are already open** (or just start a new one).
 
 That's it. The light turns green as soon as a session starts.
@@ -131,7 +131,8 @@ Each session gets **one** notification slot. A new notification replaces the old
 <details>
 <summary><b>I don't get notifications</b></summary>
 
-- Check **System Settings → Notifications → Claude Status Light** and make sure it's allowed.
+- If macOS is blocking them, the menu shows **Notifications are off in macOS**. Click **Turn On Notifications…** and switch on **Allow notifications** on the page that opens.
+- **Settings → Notifications → Send Test** shows whether notifications get through.
 - A Focus mode (Do Not Disturb) hides banners.
 - In the app's menu, **Notifications** must be checked. In Settings, check the per-type toggles and the "skip when terminal is in front" option.
 </details>

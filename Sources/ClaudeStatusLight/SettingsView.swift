@@ -26,6 +26,11 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
+    /// Coming back from System Settings: show the new permission state right away.
+    func windowDidBecomeKey(_ notification: Notification) {
+        model.refresh()
+    }
+
     func windowWillClose(_ notification: Notification) {
         window?.contentViewController = nil
         window = nil
@@ -37,10 +42,12 @@ final class SettingsModel: ObservableObject {
     weak var app: AppDelegate?
     @Published var hookStatus: HooksInstaller.Status = .notInstalled
     @Published var launchAtLogin = false
+    @Published var notificationPermission: Notifier.Permission = .unknown
 
     func refresh() {
         hookStatus = HooksInstaller.status()
         launchAtLogin = LoginItem.isEnabled
+        app?.notifier.refreshPermission { [weak self] in self?.notificationPermission = $0 }
     }
 
     var hookStatusText: String {
@@ -92,6 +99,7 @@ struct SettingsView: View {
             }
 
             Section("Notifications") {
+                permissionRow
                 Toggle("Enable notifications", isOn: $notificationsEnabled)
                 Group {
                     Toggle("When Claude finishes", isOn: $notifyDone)
@@ -106,9 +114,7 @@ struct SettingsView: View {
                     Toggle("Skip when that session’s terminal is in front", isOn: $onlyWhenNotFrontmost)
                 }
                 .disabled(!notificationsEnabled)
-                Button("Open System Notification Settings…") {
-                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")!)
-                }
+                Button("Open System Notification Settings…") { Notifier.openSystemSettings() }
             }
 
             Section {
@@ -143,6 +149,31 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 480, height: 700)
+    }
+
+    @ViewBuilder
+    private var permissionRow: some View {
+        let permission = model.notificationPermission
+        LabeledContent("macOS permission") {
+            HStack {
+                Label(permission.label, systemImage: permission == .allowed ? "checkmark.circle.fill" : "bell.slash.fill")
+                    .foregroundStyle(permission == .allowed ? Color.green : Color.orange)
+                switch permission {
+                case .allowed:
+                    Button("Send Test") { model.app?.notifier.sendTest() }
+                case .notDetermined:
+                    Button("Allow…") { model.app?.turnOnNotifications() }
+                case .denied:
+                    Button("Turn On…") { Notifier.openSystemSettings() }
+                case .unknown:
+                    EmptyView()
+                }
+            }
+        }
+        if permission == .denied {
+            Text("macOS is blocking notifications from this app. Click Turn On…, then switch on “Allow notifications”.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
     }
 
     private func soundPicker(_ selection: Binding<String>) -> some View {

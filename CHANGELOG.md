@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Notifications no longer silently stay off. The app asks for permission after setup, so the macOS prompt isn't hidden behind the setup dialog.
+- If macOS blocks notifications, the menu shows **Notifications are off in macOS → Turn On Notifications…**, which opens the app's own page in System Settings.
+- Settings shows the macOS permission state, with **Allow…**, **Turn On…** or **Send Test** buttons.
+
 ## 1.0.0 (2026-10-08)
 
 First release.

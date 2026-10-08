@@ -6,13 +6,17 @@ import StatusCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = SessionStore()
     private var statusItem: StatusItemController!
-    private var notifier: Notifier!
+    private(set) var notifier: Notifier!
     private var defaultsObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Pref.registerDefaults()
         notifier = Notifier(store: store)
-        statusItem = StatusItemController(store: store, app: self)
+        statusItem = StatusItemController(store: store, notifier: notifier, app: self)
+        notifier.onPermissionChange = { [weak self] permission in
+            self?.statusItem.permissionChanged()
+            SettingsWindowController.shared.model.notificationPermission = permission
+        }
 
         store.onChange = { [weak self] in self?.statusItem.refresh() }
         store.onEvent = { [weak self] event in self?.notifier.handle(event) }
@@ -32,7 +36,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         keepHooksCurrent()
-        notifier.requestAuthorization()
+        notifier.refreshPermission { [weak self] permission in
+            // Already set up but never asked (e.g. installed from the CLI): ask now.
+            if permission == .notDetermined, HooksInstaller.status() == .installed {
+                self?.notifier.requestPermission()
+            }
+        }
         offerHookInstallOnFirstLaunch()
     }
 
@@ -88,9 +97,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsWindowController.shared.model.refresh()
             showInfo("Hooks installed",
                      "Start a new Claude Code session (or restart open ones) and it will show up in the light.")
+            // Ask only after the setup dialog is gone, so the macOS prompt isn't missed behind it.
+            ensureNotificationPermission()
         } catch {
             showError("Couldn’t install hooks", error)
         }
+    }
+
+    // MARK: Notification permission
+
+    /// Never asked: show the macOS prompt. Turned off: offer to open System Settings.
+    func ensureNotificationPermission() {
+        notifier.refreshPermission { [weak self] permission in
+            switch permission {
+            case .notDetermined: self?.notifier.requestPermission()
+            case .denied: self?.offerNotificationSettings()
+            case .allowed, .unknown: break
+            }
+        }
+    }
+
+    /// The "Turn On" buttons: prompt if macOS still can, otherwise go straight to System Settings.
+    func turnOnNotifications() {
+        Pref.defaults.set(true, forKey: Pref.notificationsEnabled)
+        notifier.refreshPermission { [weak self] permission in
+            switch permission {
+            case .notDetermined: self?.notifier.requestPermission()
+            case .denied: Notifier.openSystemSettings()
+            case .allowed: self?.notifier.sendTest()
+            case .unknown: break
+            }
+        }
+    }
+
+    private func offerNotificationSettings() {
+        let alert = NSAlert()
+        alert.messageText = "Notifications are turned off"
+        alert.informativeText = """
+        macOS is blocking notifications from Claude Status Light, so you won’t be told when Claude \
+        finishes or needs you.
+
+        Turn on “Allow notifications” in System Settings → Notifications → Claude Status Light.
+        """
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Not Now")
+        NSApp.activate()
+        if alert.runModal() == .alertFirstButtonReturn { Notifier.openSystemSettings() }
     }
 
     func uninstallHooks() {

@@ -24,8 +24,79 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         center?.delegate = self
     }
 
-    func requestAuthorization() {
-        center?.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    // MARK: Permission
+
+    enum Permission {
+        case unknown, notDetermined, allowed, denied
+
+        var label: String {
+            switch self {
+            case .unknown: return "Checking…"
+            case .notDetermined: return "Not asked yet"
+            case .allowed: return "Allowed"
+            case .denied: return "Off"
+            }
+        }
+    }
+
+    /// Last known macOS permission; refreshed at launch, when the menu or Settings open, and after asking.
+    private(set) var permission: Permission = .unknown
+    var onPermissionChange: ((Permission) -> Void)?
+
+    func refreshPermission(then done: ((Permission) -> Void)? = nil) {
+        guard let center else { return }
+        center.getNotificationSettings { settings in
+            let status = settings.authorizationStatus
+            let alerts = settings.alertSetting
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    self.update(Self.permission(status: status, alerts: alerts))
+                    done?(self.permission)
+                }
+            }
+        }
+    }
+
+    /// Shows the macOS prompt if the user was never asked. Otherwise it just reports the current state.
+    func requestPermission(then done: ((Permission) -> Void)? = nil) {
+        guard let center else { return }
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self.refreshPermission(then: done) }
+            }
+        }
+    }
+
+    private func update(_ new: Permission) {
+        guard new != permission else { return }
+        permission = new
+        onPermissionChange?(new)
+    }
+
+    private static func permission(status: UNAuthorizationStatus, alerts: UNNotificationSetting) -> Permission {
+        switch status {
+        case .notDetermined: return .notDetermined
+        case .denied: return .denied
+        default: return alerts == .disabled ? .denied : .allowed
+        }
+    }
+
+    /// Opens this app's page in System Settings → Notifications.
+    static func openSystemSettings() {
+        let id = Bundle.main.bundleIdentifier ?? ""
+        let appPage = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)")
+        let general = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+        if let appPage, NSWorkspace.shared.open(appPage) { return }
+        if let general { NSWorkspace.shared.open(general) }
+    }
+
+    func sendTest() {
+        guard let center else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Claude Status Light"
+        content.body = "Notifications are working. You'll see these when Claude finishes or needs you."
+        content.sound = .default
+        center.add(UNNotificationRequest(identifier: "csl.test", content: content, trigger: nil))
     }
 
     private func identifier(_ key: String) -> String { "csl.session.\(key)" }
