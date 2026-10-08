@@ -44,3 +44,35 @@ final class UsageTests: XCTestCase {
         XCTAssertEqual(StatusLineRunner.shortDuration(2 * 86400 + 4 * 3600), "2d 4h")
     }
 }
+
+final class LimitWarningTests: XCTestCase {
+    private func snapshot(session: Double, weekly: Double, sessionReset: Double = 5_000) -> UsageSnapshot {
+        UsageSnapshot(session: UsageWindow(usedPercentage: session, resetsAt: sessionReset),
+                      weekly: UsageWindow(usedPercentage: weekly, resetsAt: 900_000),
+                      source: .statusLine, updatedAt: 0)
+    }
+
+    func testWarnsOncePerPeriodAt90Percent() {
+        var warned: [String: Double] = [:]
+        var result = LimitWarnings.due(in: snapshot(session: 85, weekly: 40), warned: warned, now: 1_000)
+        XCTAssertTrue(result.warnings.isEmpty)
+
+        result = LimitWarnings.due(in: snapshot(session: 90, weekly: 40), warned: result.warned, now: 1_000)
+        XCTAssertEqual(result.warnings.map(\.key), ["session"])
+        warned = result.warned
+
+        result = LimitWarnings.due(in: snapshot(session: 97, weekly: 40), warned: warned, now: 2_000)
+        XCTAssertTrue(result.warnings.isEmpty, "already warned in this window")
+
+        // After the reset, the next window can warn again.
+        result = LimitWarnings.due(in: snapshot(session: 92, weekly: 40, sessionReset: 23_000),
+                                   warned: result.warned, now: 6_000)
+        XCTAssertEqual(result.warnings.map(\.key), ["session"])
+    }
+
+    func testWeeklyAndExpiredWindows() {
+        let result = LimitWarnings.due(in: snapshot(session: 99, weekly: 91, sessionReset: 500), warned: [:], now: 1_000)
+        XCTAssertEqual(result.warnings.map(\.key), ["weekly"], "a session window that already reset is back to 0%")
+        XCTAssertEqual(result.warnings.first?.name, "Weekly")
+    }
+}

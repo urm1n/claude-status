@@ -80,6 +80,8 @@ struct SettingsView: View {
 
     @AppStorage(Pref.idleTimeoutMinutes) private var idleTimeoutMinutes = 5
     @AppStorage(Pref.fetchUsage) private var fetchUsage = false
+    @AppStorage(Pref.showUsagePercent) private var showUsagePercent = false
+    @AppStorage(Pref.notifyLimits) private var notifyLimits = true
 
     var body: some View {
         Form {
@@ -133,6 +135,9 @@ struct SettingsView: View {
             }
 
             Section {
+                Toggle("Show session usage % next to the light", isOn: $showUsagePercent)
+                Toggle("Warn when a limit is 90% used", isOn: $notifyLimits)
+                    .disabled(!notificationsEnabled)
                 Toggle("Fetch usage from Anthropic", isOn: $fetchUsage)
                     .onChange(of: fetchUsage) { _, _ in model.app?.usage.settingChanged() }
             } header: {

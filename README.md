@@ -115,6 +115,8 @@ These need a Claude **Pro or Max** plan. The numbers come from one of two places
 
 The fetch uses an endpoint Anthropic doesn't document, so it could stop working if they change it. The status line source keeps working either way.
 
+**Near the limit?** When your session window or weekly limit reaches 90% (10% left), you get one notification with the time it resets. There's one per limit per period, so no repeats. To see the number all the time, turn on **Show session usage % next to the light** in Settings.
+
 From the same menu you can turn notifications on or off, toggle Launch at Login, install or uninstall the hooks, and open **Settings…**:
 
 | Setting | What it does |
@@ -127,6 +129,8 @@ From the same menu you can turn notifications on or off, toggle Launch at Login,
 | Only if Claude worked at least… | Skip "finished" notifications for quick answers |
 | Skip when terminal is in front | No notification if you're already looking at that session |
 | Idle timeout | How long a silent "working" session waits before it's treated as ready (default 5 min) |
+| Show session usage % next to the light | Puts your current session usage (e.g. `23%`) beside the light. Off by default |
+| Warn when a limit is 90% used | One notification per limit and period, e.g. "Session limit 90% used: 10% left · resets in 1h 12m". On by default |
 | Fetch usage from Anthropic | Show usage limits for VS Code and other editors too (see above) |
 
 <details>

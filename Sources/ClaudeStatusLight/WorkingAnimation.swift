@@ -18,7 +18,8 @@ final class WorkingAnimation {
             && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
-    func start(on button: NSStatusBarButton, color: NSColor) {
+    /// `leading`: the image sits at the left with text after it (usage %), instead of centered.
+    func start(on button: NSStatusBarButton, color: NSColor, leading: Bool = false) {
         stop()
         button.wantsLayer = true
         guard let host = button.layer else { return }
@@ -28,8 +29,17 @@ final class WorkingAnimation {
         let thickness = NSStatusBar.system.thickness
         let bounds = button.bounds.isEmpty ? CGRect(x: 0, y: 0, width: thickness, height: thickness) : button.bounds
         let shape = CAShapeLayer()
-        shape.frame = CGRect(x: (bounds.width - size) / 2, y: (bounds.height - size) / 2, width: size, height: size)
-        shape.autoresizingMask = [.layerMinXMargin, .layerMaxXMargin, .layerMinYMargin, .layerMaxYMargin]
+        if leading {
+            // Where the button draws its (placeholder) image; stays put as the text changes.
+            button.layoutSubtreeIfNeeded()
+            let imageRect = (button.cell as? NSButtonCell)?.imageRect(forBounds: button.bounds) ?? .zero
+            let midX = imageRect.isEmpty ? 3 + size / 2 : imageRect.midX
+            shape.frame = CGRect(x: midX - size / 2, y: (bounds.height - size) / 2, width: size, height: size)
+            shape.autoresizingMask = [.layerMaxXMargin, .layerMinYMargin, .layerMaxYMargin]
+        } else {
+            shape.frame = CGRect(x: (bounds.width - size) / 2, y: (bounds.height - size) / 2, width: size, height: size)
+            shape.autoresizingMask = [.layerMinXMargin, .layerMaxXMargin, .layerMinYMargin, .layerMaxYMargin]
+        }
         let inset = (size - mark) / 2
         shape.path = BrandMark.path(fitting: NSRect(x: inset, y: inset, width: mark, height: mark)).cgPath
         shape.fillColor = color.cgColor

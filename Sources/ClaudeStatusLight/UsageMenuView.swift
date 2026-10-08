@@ -71,11 +71,7 @@ final class UsageMenuView: NSView {
         draw(footer, at: NSPoint(x: Self.inset, y: y + 2), font: smallFont, color: .tertiaryLabelColor)
     }
 
-    /// A window whose reset time has passed has started over.
-    private func effective(_ window: UsageWindow) -> UsageWindow {
-        if let reset = window.resetsAt, reset <= now { return UsageWindow(usedPercentage: 0, resetsAt: nil) }
-        return window
-    }
+    private func effective(_ window: UsageWindow) -> UsageWindow { window.current(now: now) }
 
     private func resetText(_ window: UsageWindow) -> String {
         guard let reset = window.resetsAt, reset > now else { return "Not started" }

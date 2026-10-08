@@ -19,6 +19,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let symbols: Bool
         let colors: [String]
         let spinning: Bool
+        let percent: String
     }
 
     init(store: SessionStore, notifier: Notifier, usage: UsageStore, app: AppDelegate) {
@@ -40,11 +41,28 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let visible = state != nil || Pref.defaults.bool(forKey: Pref.showWhenIdle)
         if statusItem.isVisible != visible { statusItem.isVisible = visible }
 
+        let percent = Pref.defaults.bool(forKey: Pref.showUsagePercent) ? usage.sessionPercent.map { "\($0)%" } ?? "" : ""
         let key = RenderKey(state: state, symbols: Pref.defaults.bool(forKey: Pref.symbolMode),
                             colors: SessionState.allCases.map { Pref.color(for: $0).hexString },
-                            spinning: state == .working && WorkingAnimation.isAllowed)
+                            spinning: state == .working && WorkingAnimation.isAllowed,
+                            percent: percent)
         guard key != lastRendered, let button = statusItem.button else { return }
+        let previous = lastRendered
         lastRendered = key
+
+        if percent.isEmpty {
+            statusItem.length = NSStatusItem.squareLength
+            button.title = ""
+            button.imagePosition = .imageOnly
+        } else {
+            statusItem.length = NSStatusItem.variableLength
+            // Monospaced digits so the item doesn't jiggle as the number changes.
+            button.attributedTitle = NSAttributedString(string: percent, attributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize(for: .small) + 1, weight: .medium),
+                .baselineOffset: 0.5,
+            ])
+            button.imagePosition = .imageLeading
+        }
 
         let image = IconRenderer.statusImage(for: state)
         if key.spinning {
@@ -52,7 +70,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             let placeholder = NSImage(size: image.size)
             placeholder.accessibilityDescription = image.accessibilityDescription
             button.image = placeholder
-            animation.start(on: button, color: Pref.color(for: .working))
+            // Only the number changed: keep the spin going instead of restarting it.
+            let sameLayout = previous?.spinning == true && previous?.colors == key.colors
+                && previous?.percent.isEmpty == key.percent.isEmpty && previous?.symbols == key.symbols
+            if !(sameLayout && animation.isRunning) {
+                animation.start(on: button, color: Pref.color(for: .working), leading: !percent.isEmpty)
+            }
         } else {
             animation.stop()
             button.image = image
@@ -73,6 +96,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     /// New usage numbers arrived (status line or fetch): update the open menu in place.
     func usageChanged() {
+        refresh() // the % next to the light
         if menuIsOpen, let menu = statusItem.menu { menuNeedsUpdate(menu) }
     }
 

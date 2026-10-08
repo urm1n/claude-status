@@ -24,7 +24,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.statusItem.refresh()
             self.usage.setActive(!self.store.records.isEmpty)
         }
-        usage.onChange = { [weak self] in self?.statusItem.usageChanged() }
+        usage.onChange = { [weak self] in
+            guard let self else { return }
+            self.statusItem.usageChanged()
+            self.notifier.checkLimits(self.usage.current)
+        }
         usage.start()
         store.onEvent = { [weak self] event in self?.notifier.handle(event) }
         store.start()

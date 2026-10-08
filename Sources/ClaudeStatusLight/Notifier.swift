@@ -127,6 +127,41 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
 
     private var enabled: Bool { Pref.defaults.bool(forKey: Pref.notificationsEnabled) }
 
+    /// e.g. "Session limit 90% used" / "10% left · resets in 1h 12m". One per window and period.
+    func checkLimits(_ snapshot: UsageSnapshot?) {
+        let now = Date().timeIntervalSince1970
+        let sent = Pref.defaults.dictionary(forKey: Pref.limitWarningsSent) as? [String: Double] ?? [:]
+        let (warnings, updated) = LimitWarnings.due(in: snapshot, warned: sent, now: now)
+        if updated != sent { Pref.defaults.set(updated, forKey: Pref.limitWarningsSent) }
+        guard enabled, Pref.defaults.bool(forKey: Pref.notifyLimits), let center else { return }
+
+        for warning in warnings {
+            let used = Int(warning.window.usedPercentage.rounded())
+            let content = UNMutableNotificationContent()
+            content.title = used >= 100 ? "\(warning.name) limit reached" : "\(warning.name) limit \(used)% used"
+            var parts: [String] = []
+            if used < 100 { parts.append("\(100 - used)% left") }
+            if let reset = warning.window.resetsAt, reset > now {
+                let seconds = reset - now
+                if seconds < 24 * 3600 {
+                    parts.append("resets in \(StatusLineRunner.shortDuration(seconds))")
+                } else {
+                    let formatter = DateFormatter()
+                    formatter.setLocalizedDateFormatFromTemplate("EEEjmm")
+                    parts.append("resets \(formatter.string(from: Date(timeIntervalSince1970: reset)))")
+                }
+            }
+            content.body = parts.joined(separator: " · ").capitalizedFirst
+            content.threadIdentifier = "limits"
+            switch Pref.defaults.string(forKey: Pref.soundInput) ?? Pref.defaultSound {
+            case Pref.defaultSound: content.sound = .default
+            case Pref.noSound: content.sound = nil
+            case let name: NSSound(named: NSSound.Name(name))?.play()
+            }
+            center.add(UNNotificationRequest(identifier: "csl.limit.\(warning.key)", content: content, trigger: nil))
+        }
+    }
+
     private func notifyFinished(key: String, record: SessionRecord) {
         guard enabled, Pref.defaults.bool(forKey: Pref.notifyDone), !shouldSkipForFocus(record) else { return }
         var body = record.folderName
@@ -219,4 +254,8 @@ enum Format {
         if total < 3600 { return "\(total / 60)m" }
         return "\(total / 3600)h \(total % 3600 / 60)m"
     }
+}
+
+private extension String {
+    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
 }

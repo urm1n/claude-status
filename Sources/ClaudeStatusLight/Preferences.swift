@@ -19,6 +19,10 @@ enum Pref {
     static let didOfferHookInstall = "didOfferHookInstall"
     static let fetchUsage = "fetchUsage"
     static let animateWorking = "animateWorking"
+    static let notifyLimits = "notifyLimits"
+    static let showUsagePercent = "showUsagePercent"
+    /// Window key → reset time already warned about (so each limit warns once per period).
+    static let limitWarningsSent = "limitWarningsSent"
 
     static let defaultSound = "Default"
     /// Out of the box: a success chime when Claude finishes, an alert when it needs you.
@@ -43,6 +47,8 @@ enum Pref {
             colorInput: "",
             fetchUsage: false,
             animateWorking: true,
+            notifyLimits: true,
+            showUsagePercent: false,
         ])
     }
 
@@ -51,7 +57,7 @@ enum Pref {
     /// The settings that affect the menu bar light.
     static var lightSignature: [String] {
         [colorReady, colorWorking, colorInput].map { defaults.string(forKey: $0) ?? "" }
-            + [symbolMode, showWhenIdle, animateWorking].map { String(defaults.bool(forKey: $0)) }
+            + [symbolMode, showWhenIdle, animateWorking, showUsagePercent].map { String(defaults.bool(forKey: $0)) }
             + [String(defaults.integer(forKey: idleTimeoutMinutes))]
     }
 

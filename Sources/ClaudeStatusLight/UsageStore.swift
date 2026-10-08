@@ -15,6 +15,7 @@ final class UsageStore {
 
     private var dirSource: DispatchSourceFileSystemObject?
     private var timer: DispatchSourceTimer?
+    private var resetTimer: DispatchSourceTimer?
     private var lastAttempt: Date = .distantPast
     private var active = false
 
@@ -23,6 +24,31 @@ final class UsageStore {
 
     var current: UsageSnapshot? {
         [statusLine, fetched].compactMap { $0 }.max { $0.updatedAt < $1.updatedAt }
+    }
+
+    /// Current session usage (0 after the window resets), for the number next to the light.
+    var sessionPercent: Int? {
+        current?.session.map { Int($0.current(now: Date().timeIntervalSince1970).usedPercentage.rounded()) }
+    }
+
+    /// One-shot timer at the next reset, so the % next to the light drops to 0 on time.
+    private func scheduleResetTimer() {
+        resetTimer?.cancel()
+        resetTimer = nil
+        let now = Date().timeIntervalSince1970
+        guard let next = current?.nextReset(after: now) else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + (next - now) + 1, leeway: .seconds(10))
+        timer.setEventHandler { [weak self] in
+            MainActor.assumeIsolated { self?.changed() }
+        }
+        resetTimer = timer
+        timer.resume()
+    }
+
+    private func changed() {
+        scheduleResetTimer()
+        onChange?()
     }
 
     var fetchEnabled: Bool { Pref.defaults.bool(forKey: Pref.fetchUsage) }
@@ -58,7 +84,7 @@ final class UsageStore {
             .flatMap { try? JSONDecoder().decode(UsageSnapshot.self, from: $0) }
         guard snapshot != statusLine else { return }
         statusLine = snapshot
-        onChange?()
+        changed()
     }
 
     // MARK: Anthropic source (opt-in)
@@ -78,7 +104,7 @@ final class UsageStore {
         } else {
             fetched = nil
             fetchError = nil
-            onChange?()
+            changed()
         }
         scheduleTimer()
     }
@@ -102,7 +128,7 @@ final class UsageStore {
             case .failure(let failure):
                 self.fetchError = failure
             }
-            self.onChange?()
+            self.changed()
         }
     }
 

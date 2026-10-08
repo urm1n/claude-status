@@ -11,6 +11,12 @@ public struct UsageWindow: Codable, Equatable, Sendable {
         self.usedPercentage = usedPercentage
         self.resetsAt = resetsAt
     }
+
+    /// A window whose reset time has passed has started over.
+    public func current(now: Double) -> UsageWindow {
+        if let resetsAt, resetsAt <= now { return UsageWindow(usedPercentage: 0, resetsAt: nil) }
+        return self
+    }
 }
 
 /// Subscription usage as Claude Code's `/usage` shows it.
@@ -39,6 +45,22 @@ public struct UsageSnapshot: Codable, Equatable, Sendable {
     }
 
     public var isEmpty: Bool { session == nil && weekly == nil && weeklyByModel.isEmpty }
+
+    /// Every window with a stable key and a display name: "session", "weekly", "weekly.Opus"…
+    public var windows: [(key: String, name: String, window: UsageWindow)] {
+        var all: [(String, String, UsageWindow)] = []
+        if let session { all.append(("session", "Session", session)) }
+        if let weekly { all.append(("weekly", "Weekly", weekly)) }
+        for (model, window) in weeklyByModel.sorted(by: { $0.key < $1.key }) {
+            all.append(("weekly.\(model)", "Weekly \(model)", window))
+        }
+        return all
+    }
+
+    /// The next time any window resets (to refresh what's shown when it does).
+    public func nextReset(after now: Double) -> Double? {
+        windows.compactMap { $0.window.resetsAt }.filter { $0 > now }.min()
+    }
 
     /// From the status line JSON: `rate_limits.five_hour` / `rate_limits.seven_day`,
     /// each `{ used_percentage, resets_at (epoch seconds) }`. Only Pro/Max sessions include it.
@@ -138,5 +160,33 @@ public enum StatusLineRunner {
               let value = try? JSONValue.parse(data) else { return nil }
         guard let command = value["command"]?.string, !command.isEmpty else { return nil }
         return command
+    }
+}
+
+/// "You're close to your limit" warnings: once per window per reset period.
+public enum LimitWarnings {
+    public static let threshold: Double = 90
+
+    public struct Warning: Equatable, Sendable {
+        public let key: String
+        public let name: String
+        public let window: UsageWindow
+    }
+
+    /// Windows at or over the threshold that haven't been warned about in this period.
+    /// `warned` maps window key → the reset time it was warned for; returns the updated map.
+    public static func due(in snapshot: UsageSnapshot?, warned: [String: Double], now: Double)
+        -> (warnings: [Warning], warned: [String: Double]) {
+        var warned = warned.filter { $0.value == 0 || $0.value > now } // forget periods that have ended
+        var warnings: [Warning] = []
+        for (key, name, window) in snapshot?.windows ?? [] {
+            let window = window.current(now: now)
+            guard window.usedPercentage >= threshold else { continue }
+            let period = window.resetsAt ?? 0
+            if warned[key] == period { continue }
+            warned[key] = period
+            warnings.append(Warning(key: key, name: name, window: window))
+        }
+        return (warnings, warned)
     }
 }

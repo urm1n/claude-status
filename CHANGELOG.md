@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Limit warning**: one notification when the session or weekly limit reaches 90% used, with time to reset. On by default (Settings → Usage limits).
+- **Usage % next to the light** (optional, off by default): shows current session usage beside the flower. It drops to 0% on its own when the window resets.
 - **Distinct sounds by default**: "Hero" when Claude finishes, "Ping" when it needs you. Change them in Settings → Notifications.
 - **Pressing Esc turns the light green right away.** No hook fires when you stop Claude, so the app watches the session transcript for Claude Code's interrupt note. This also covers pressing Esc at a permission prompt. Before, the light stayed yellow for up to a minute.
 - **The flower spins slowly (clockwise) while Claude is working.** It's a Core Animation layer, so it costs no CPU. It's off with Reduce Motion or shape mode, and there's a toggle in Settings.
