@@ -216,7 +216,8 @@ enum UsageFetcher {
         return .success(snapshot)
     }
 
-    /// Runs `claude -p` once so Claude Code refreshes its own login in the Keychain.
+    /// Runs `claude -p` once so Claude Code refreshes its own login in the Keychain. Hooks are off for
+    /// that run, so it doesn't show up as a session or post a "Claude finished" notification.
     static func renewLogin() {
         let home = NSHomeDirectory()
         let candidates = ["\(home)/.local/bin/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude",
@@ -224,7 +225,7 @@ enum UsageFetcher {
         guard let path = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = ["-p", "reply with ok", "--model", "haiku"]
+        process.arguments = ["-p", "reply with ok", "--model", "haiku", "--settings", #"{"disableAllHooks":true}"#]
         process.currentDirectoryURL = FileManager.default.temporaryDirectory
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - The usage panel shows the clock time a limit resets as well as the countdown: "Resets in 4h 22m · at 2:34 PM". The 90% warning does too.
+- **Renew Login**: when Claude Code's saved login has expired, the usage section offers **Renew Login**. It runs one tiny `claude -p` request so Claude Code renews its own login; the app still never touches the token itself.
 
 ## 1.1.0 (2026-10-09)
 

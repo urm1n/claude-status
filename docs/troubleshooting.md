@@ -52,7 +52,7 @@ Another tool also hooks into Claude Code, for example a notifier script that use
 - **Terminal:** they appear after Claude's first reply. Restart sessions that were open before you installed or updated the app.
 - **VS Code or Cursor:** click the light and choose **Show Usage from Anthropic…**
 - **"Couldn't read Claude Code's login":** run `claude` once in a terminal to log in, then choose **Try Again**.
-- **"Login expired":** use Claude Code once and it renews the login.
+- **"Login expired":** click **Renew Login** in the menu (it sends one tiny request through Claude Code), or use Claude Code once. Either way Claude Code renews its own login.
 
 ## The light stays yellow after pressing Esc
 
