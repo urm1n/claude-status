@@ -142,14 +142,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             var parts: [String] = []
             if used < 100 { parts.append("\(100 - used)% left") }
             if let reset = warning.window.resetsAt, reset > now {
-                let seconds = reset - now
-                if seconds < 24 * 3600 {
-                    parts.append("resets in \(StatusLineRunner.shortDuration(seconds))")
-                } else {
-                    let formatter = DateFormatter()
-                    formatter.setLocalizedDateFormatFromTemplate("EEEjmm")
-                    parts.append("resets \(formatter.string(from: Date(timeIntervalSince1970: reset)))")
-                }
+                parts.append("resets " + Format.reset(at: reset, now: now).replacingOccurrences(of: " · at ", with: " at "))
             }
             content.body = parts.joined(separator: " · ").capitalizedFirst
             content.threadIdentifier = "limits"
@@ -239,6 +232,20 @@ enum AppFocus {
 }
 
 enum Format {
+    /// When a usage window resets: "in 4h 22m · at 2:34 PM" today or tomorrow,
+    /// "Mon 2:05 PM" further out. Follows the Mac's 12/24-hour setting.
+    static func reset(at reset: Double, now: Double = Date().timeIntervalSince1970) -> String {
+        let date = Date(timeIntervalSince1970: reset)
+        let formatter = DateFormatter()
+        let seconds = reset - now
+        if seconds < 24 * 3600 {
+            formatter.setLocalizedDateFormatFromTemplate("jmm")
+            return "in \(StatusLineRunner.shortDuration(seconds)) · at \(formatter.string(from: date))"
+        }
+        formatter.setLocalizedDateFormatFromTemplate("EEEjmm")
+        return formatter.string(from: date)
+    }
+
     static func duration(_ seconds: Double) -> String {
         let total = Int(seconds.rounded())
         if total < 60 { return "\(total)s" }

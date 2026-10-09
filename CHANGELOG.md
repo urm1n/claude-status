@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The usage panel shows the clock time a limit resets as well as the countdown: "Resets in 4h 22m · at 2:34 PM". The 90% warning does too.
+
 ## 1.1.0 (2026-10-09)
 
 - **Limit warning**: one notification when the session or weekly limit reaches 90% used, with time to reset. On by default (Settings → Usage limits).

@@ -75,11 +75,7 @@ final class UsageMenuView: NSView {
 
     private func resetText(_ window: UsageWindow) -> String {
         guard let reset = window.resetsAt, reset > now else { return "Not started" }
-        let seconds = reset - now
-        if seconds < 24 * 3600 { return "Resets in \(StatusLineRunner.shortDuration(seconds))" }
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("EEEjmm")
-        return "Resets \(formatter.string(from: Date(timeIntervalSince1970: reset)))"
+        return "Resets " + Format.reset(at: reset, now: now)
     }
 
     private static func color(for percent: Double) -> NSColor {

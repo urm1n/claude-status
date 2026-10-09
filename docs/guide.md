@@ -10,7 +10,7 @@
 
 Click the light in the menu bar to see:
 
-- **Usage limits:** session (5-hour) and weekly usage, with reset times. Bars turn orange at 75% and red at 90%.
+- **Usage limits:** session (5-hour) and weekly usage, with when each resets ("Resets in 4h 22m · at 2:34 PM"). Bars turn orange at 75% and red at 90%.
 - **Sessions:** every open Claude Code session, with its folder, state, and how long it has been in that state. Click one to bring its terminal or editor to the front.
 - **Notifications** and **Launch at Login** switches, **Settings…**, and **Uninstall Hooks…**
 
@@ -20,7 +20,7 @@ Click the light in the menu bar to see:
 |---|---|---|
 | Claude finishes a turn | *Claude finished · my-project · 2m 13s* | Hero |
 | Claude needs you | *Claude needs you · my-project: Permission needed: Bash* | Ping |
-| A usage limit is 90% used | *Session limit 90% used · 10% left · resets in 1h 12m* | Ping |
+| A usage limit is 90% used | *Session limit 90% used · 10% left · resets in 1h 12m at 2:34 PM* | Ping |
 
 - Each session has one notification slot. A new notification replaces the old one, and it clears itself once Claude gets back to work or you reply.
 - Click a notification to jump to that session's terminal or editor.
