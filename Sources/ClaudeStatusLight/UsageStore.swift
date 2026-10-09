@@ -131,6 +131,18 @@ final class UsageStore {
         }
     }
 
+    /// Claude Code renews its own login whenever it makes a request, so ask it for one tiny reply.
+    /// (The app never touches the refresh token itself.)
+    func renewLogin() {
+        guard !isFetching else { return }
+        isFetching = true
+        Task {
+            await Task.detached(priority: .utility) { UsageFetcher.renewLogin() }.value
+            self.isFetching = false
+            self.refresh(force: true)
+        }
+    }
+
     private func scheduleTimer() {
         timer?.cancel()
         timer = nil
@@ -202,6 +214,25 @@ enum UsageFetcher {
             return .failure(.notSubscriber)
         }
         return .success(snapshot)
+    }
+
+    /// Runs `claude -p` once so Claude Code refreshes its own login in the Keychain.
+    static func renewLogin() {
+        let home = NSHomeDirectory()
+        let candidates = ["\(home)/.local/bin/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude",
+                          "\(home)/.claude/local/claude"]
+        guard let path = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: path)
+        process.arguments = ["-p", "reply with ok", "--model", "haiku"]
+        process.currentDirectoryURL = FileManager.default.temporaryDirectory
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        process.standardInput = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return }
+        let deadline = Date().addingTimeInterval(60)
+        while process.isRunning, Date() < deadline { Thread.sleep(forTimeInterval: 0.2) }
+        if process.isRunning { process.terminate() }
     }
 
     /// Claude Code stores `{"claudeAiOauth": {"accessToken", "expiresAt" (ms), …}}` as a generic password,
