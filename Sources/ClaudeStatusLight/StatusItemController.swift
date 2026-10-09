@@ -168,16 +168,19 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func addUsageSection(to menu: NSMenu) {
         if let snapshot = usage.current {
-            let item = NSMenuItem()
-            item.view = UsageMenuView(snapshot: snapshot)
-            menu.addItem(item)
+            let usageItem = NSMenuItem()
+            usageItem.view = UsageMenuView(snapshot: snapshot)
+            menu.addItem(usageItem)
             if usage.fetchEnabled, let error = usage.fetchError, snapshot.source == .statusLine {
                 menu.addItem(note("Couldn’t refresh from Anthropic: \(error.message)"))
+                if error == .loginExpired { menu.addItem(item("Renew Login (one tiny Claude request)", #selector(renewLogin))) }
             }
         } else if usage.fetchEnabled {
             if let error = usage.fetchError {
                 menu.addItem(note("Usage unavailable: \(error.message)"))
-                menu.addItem(item("Try Again", #selector(retryUsage)))
+                menu.addItem(error == .loginExpired
+                    ? item("Renew Login (one tiny Claude request)", #selector(renewLogin))
+                    : item("Try Again", #selector(retryUsage)))
             } else {
                 menu.addItem(note("Loading usage…"))
             }
@@ -247,6 +250,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func turnOnNotifications() { app.turnOnNotifications() }
     @objc private func enableUsage() { app.enableUsageFetching() }
     @objc private func retryUsage() { usage.refresh(force: true) }
+    @objc private func renewLogin() { usage.renewLogin() }
 
     @objc private func toggleLaunchAtLogin() { app.setLaunchAtLogin(!LoginItem.isEnabled) }
     @objc private func installHooks() { app.installHooks() }
