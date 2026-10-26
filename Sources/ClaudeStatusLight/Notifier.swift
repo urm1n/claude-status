@@ -191,7 +191,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
-        content.body = body
+        content.body = "\(body) · \(Format.clock(Date()))"
         content.threadIdentifier = key
         if let appPid = record.appPid { content.userInfo = ["appPid": Int(appPid)] }
 
@@ -243,6 +243,13 @@ enum Format {
             return "in \(StatusLineRunner.shortDuration(seconds)) · at \(formatter.string(from: date))"
         }
         formatter.setLocalizedDateFormatFromTemplate("EEEjmm")
+        return formatter.string(from: date)
+    }
+
+    /// Time of day, e.g. "2:34 PM". Follows the Mac's 12/24-hour setting.
+    static func clock(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("jmm")
         return formatter.string(from: date)
     }
 
